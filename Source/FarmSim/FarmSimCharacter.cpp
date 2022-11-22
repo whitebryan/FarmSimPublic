@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "GrowthPlot.h"
+#include "BasePlant.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -55,7 +56,7 @@ void AFarmSimCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (GetWorld())
+	if (GetWorld())//Create a growth plot and grab its Z extent for use later in spawning
 	{
 		AActor* newPlot = GetWorld()->SpawnActor<AActor>(growthPlotActor, FVector(-200, 0, 0), UKismetMathLibrary::MakeRotator(0, 0, 0));
 
@@ -123,7 +124,7 @@ void AFarmSimCharacter::MoveRightAction_Implementation(float Value)
 
 void AFarmSimCharacter::InteractAction_Implementation()
 {
-	if (interactActorComp != nullptr)
+	if (interactActorComp != nullptr)//If we are interacting with something using an interaction component
 	{
 		if (curPlayerStatus == PlayerStatus::InStorage && interactActorComp->interactionType == "Loot")
 		{
@@ -161,20 +162,13 @@ void AFarmSimCharacter::InteractAction_Implementation()
 				curSelectedSeedSlot = -2;
 			}
 		}
-		else if (interactActorComp->interactionType == "GatherableWood")
-		{
-		}
-		else if (interactActorComp->interactionType == "GatherableStone")
-		{
-		}
-
 
 		if (interactActorComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
 		{
 			IInteractInterface::Execute_Interact(interactActorComp);
 		}
 	}
-	else
+	else//If no component use tool
 	{
 		UseToolAction();
 	}
@@ -188,7 +182,7 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 	{
 		break;
 	}
-	case PlayerToolStatus::ShovelOut:
+	case PlayerToolStatus::ShovelOut: //Line trace ddown digDistance in front of the player and check if the ground is free if so create a growth plot there
 	{
 		const FName TraceTag("MyTraceTag");
 		GetWorld()->DebugDrawTraceTag = TraceTag;
@@ -245,8 +239,41 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 		}
 		break;
 	}
-	case PlayerToolStatus::WateringCanOut:
+	case PlayerToolStatus::WateringCanOut: //Box Trace down digDistance in front of player and try to water all plants hit
 	{
+		TArray<FHitResult> RV_Hits;
+		TArray<AActor*> actorsToIgnore;
+		actorsToIgnore.Add(this);
+
+		FVector startPoint = GetActorLocation() + (GetActorForwardVector() * digDistance);
+		FVector endPoint = startPoint;
+		endPoint.Z -= 300;
+
+		UKismetSystemLibrary::BoxTraceMulti(
+			this, 
+			startPoint, 
+			endPoint,
+			FVector(150,150,20),
+			FRotator(0,0,0),
+			ETraceTypeQuery::TraceTypeQuery3,
+			true,
+			actorsToIgnore,
+			EDrawDebugTrace::None,
+			RV_Hits,
+			true);
+
+		for (FHitResult hit : RV_Hits)
+		{
+			if (IsValid(hit.GetActor()))
+			{
+				ABasePlant* curPlant = Cast<ABasePlant>(hit.GetActor());
+
+				if (IsValid(curPlant))
+				{
+					curPlant->waterPlant();
+				}
+			}
+		}
 		break;
 	}
 	default:
@@ -272,7 +299,7 @@ void AFarmSimCharacter::JumpAction_Implementation(bool isJumping)
 //Scrolling through inventory items
 void AFarmSimCharacter::ScrollItemsAction_Implementation(float Value)
 {
-	if (curPlayerStatus == PlayerStatus::Planting)
+	if (curPlayerStatus == PlayerStatus::Planting)//Scroll through seeds for planting
 	{
 		if (Value > 0)
 		{
@@ -285,7 +312,7 @@ void AFarmSimCharacter::ScrollItemsAction_Implementation(float Value)
 			setSelectedItem();
 		}
 	}
-	else if (curPlayerStatus == PlayerStatus::NormalState && Value != 0)
+	else if (curPlayerStatus == PlayerStatus::NormalState && Value != 0)//Scroll through equipped tools
 	{
 		uint8 curTool = (uint8)toolStatus;
 		if(Value > 0)
@@ -342,6 +369,7 @@ void AFarmSimCharacter::changeEquippedTool_Implementation(PlayerToolStatus newTo
 	}
 }
 
+//Close the game or back out of menus
 void AFarmSimCharacter::EscMenuAction_Implementation()
 {
 	switch (curPlayerStatus)
