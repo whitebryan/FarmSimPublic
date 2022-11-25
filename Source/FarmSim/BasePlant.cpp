@@ -107,7 +107,7 @@ void ABasePlant::waterPlant()
 void ABasePlant::harvestPlant()
 {
 	//Cast to player
-	ACharacter* player = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+	AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 	UInventoryComponent* playerInvComp;
 	playerInvComp = Cast<UInventoryComponent>(player->GetComponentByClass(UInventoryComponent::StaticClass()));
 
@@ -129,10 +129,13 @@ void ABasePlant::harvestPlant()
 			//if player inventory is full return else make the plot useable again
 			if (!harvested)
 			{
+				player->displayNotification("Inventory full");
 				return;
 			}
 			else
 			{
+				FString harvestMessage = "Harvested " + FString::FromInt(harvestAmt) + " " + plantName.ToString() + "(s)"; 
+				player->displayNotification(harvestMessage, 2);
 				Cast<AGrowthPlot>(myPlot)->changeInteractability();
 				Destroy();
 			}
@@ -142,6 +145,8 @@ void ABasePlant::harvestPlant()
 			int leftovers = playerInvComp->changeQuantity(plantName, harvestAmt);
 			Cast<AGrowthPlot>(myPlot)->changeInteractability();
 			
+			FString harvestMessage = "Harvested " + FString::FromInt(harvestAmt - leftovers) + " " + plantName.ToString() + "(s)";
+
 			if (leftovers > 0)
 			{
 				FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(plantName, FString(""));
@@ -152,7 +157,10 @@ void ABasePlant::harvestPlant()
 				newItem.icon = curPlantRow->icon;
 
 				playerInvComp->createLootBag(newItem);
+				harvestMessage += " and dropped " + FString::FromInt(leftovers);
 			}
+
+			player->displayNotification(harvestMessage, 2);
 
 			Destroy();
 		}

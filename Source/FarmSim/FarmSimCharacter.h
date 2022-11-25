@@ -6,10 +6,12 @@
 #include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractComponent.h"
 #include "GameFramework/Character.h"
 #include "PlayerStatus.h"
+#include "ToolItem.h"
 #include "InventoryComponent.h"
 #include "FarmSimCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerStatusChange, PlayerStatus, newStatus);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerToolChange, PlayerToolStatus, newStatus);
 
 UCLASS(config=Game)
 class AFarmSimCharacter : public ACharacter
@@ -26,6 +28,8 @@ class AFarmSimCharacter : public ACharacter
 public:
 	AFarmSimCharacter();
 
+	virtual void Tick(float DeltaTime) override;
+
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
 	float TurnRate = 1.25f;
@@ -37,6 +41,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Delegates")
 	FOnPlayerStatusChange PlayerStatusChanged;
+	UPROPERTY(BlueprintAssignable, Category = "Delegates")
+	FOnPlayerToolChange PlayerToolChanged;
 
 
 
@@ -79,17 +85,31 @@ public:
 	//
 
 
-
 	UFUNCTION(BlueprintImplementableEvent)
 	void setSelectedItem(bool showUI = true);
 
 	UFUNCTION(BlueprintCallable)
 	void setPlayerStatus(PlayerStatus newStatus);
 
+
+	//Tool stuff
+	UFUNCTION(BlueprintCallable)
+	void changeTool(FName toolType, FToolInvItem newTool);
+
+	UFUNCTION(BlueprintCallable)
+	FToolInvItem grabTool(FName toolType);
+	//
+
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	PlayerToolStatus getEquippeddTool() { return toolStatus; };
+
+	//UI Functions
+	UFUNCTION(BlueprintImplementableEvent)
+	void displayNotification(const FString& message, int showLength = 2);
 
 protected:
 	virtual void BeginPlay() override;
@@ -101,6 +121,8 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	TEnumAsByte<PlayerToolStatus> toolStatus = PlayerToolStatus::NoToolOut;
+	UPROPERTY(BlueprintReadOnly)
+	TEnumAsByte<PlayerToolStatus> prevToolStatus = PlayerToolStatus::NoToolOut;
 
 	//Grid snapping and item placement
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (ToolTip = "What number to round towards for grid snapping"))
@@ -115,6 +137,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement")
 	TSubclassOf<class AActor> growthPlotActor;
 	int growthPlotZExtent = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement")
+	TSubclassOf<class AActor> growthPlotPreview;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement")
+	TSubclassOf<class AActor> wateringCanPreview;
+
+	UFUNCTION(BlueprintCallable)
+	FHitResult placementLineTraceDown(bool snapToGrid = true, bool drawDebug = false);
+
+	AActor* placementPreview;
 	//
 
 	UPROPERTY(BlueprintReadWrite)
@@ -122,5 +155,9 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite)
 	UInventoryComponent* myInventoryComp = nullptr;
+
+	//Tool stuff
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<FToolInvItem> currentTools;
 };
 

@@ -325,3 +325,16 @@ void UInventoryComponent::createLootBag(FInvItem itemToDrop, int slot)
 		newLootBag->Destroy();
 	}
 }
+
+
+
+bool UInventoryComponent::isEmpty()
+{
+	for (int i = 0; i < inventoryArray.Num(); ++i)
+	{
+		if(inventoryArray[i].name != "Empty")
+			return false;
+	}
+
+	return true;
+}

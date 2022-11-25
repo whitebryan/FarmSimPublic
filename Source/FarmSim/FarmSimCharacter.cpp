@@ -73,6 +73,59 @@ void AFarmSimCharacter::BeginPlay()
 	}
 }
 
+void AFarmSimCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (toolStatus == PlayerToolStatus::ShovelOut || toolStatus == PlayerToolStatus::WateringCanOut)//Create and show a placement preview for digging a growth plot or watering crops
+	{
+		FHitResult RV_Hit;
+		RV_Hit = placementLineTraceDown();
+
+		FVector placementPoint = RV_Hit.ImpactPoint;
+		placementPoint.Z += growthPlotZExtent;
+
+		if (!IsValid(placementPreview) && toolStatus == PlayerToolStatus::ShovelOut)
+		{
+			FActorSpawnParameters myParams;
+			myParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			placementPreview = GetWorld()->SpawnActor<AActor>(growthPlotPreview, placementPoint, UKismetMathLibrary::MakeRotator(0, 0, 0), myParams);
+			placementPreview->SetHidden(false);
+		}
+		else if (!IsValid(placementPreview) && toolStatus == PlayerToolStatus::WateringCanOut)
+		{
+			FActorSpawnParameters myParams;
+			myParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			placementPreview = GetWorld()->SpawnActor<AActor>(wateringCanPreview, placementPoint, UKismetMathLibrary::MakeRotator(0, 0, 0), myParams);
+			placementPreview->SetHidden(false);
+		}
+		else if(IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("GrowthPlot") && toolStatus == PlayerToolStatus::ShovelOut)
+		{
+			placementPreview->SetActorLocation(RV_Hit.GetActor()->GetActorLocation());
+			placementPreview->SetActorHiddenInGame(false);
+		}
+		else if(IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("Ground") && toolStatus == PlayerToolStatus::ShovelOut)
+		{
+			placementPreview->SetActorLocation(placementPoint);
+			placementPreview->SetActorHiddenInGame(false);
+		}
+		else if(toolStatus == PlayerToolStatus::WateringCanOut)
+		{
+			if (IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("GrowthPlot"))
+			{
+				placementPoint.Z = RV_Hit.GetActor()->GetActorLocation().Z;
+			}
+
+			placementPreview->SetActorLocation(placementPoint);
+			placementPreview->SetActorHiddenInGame(false);
+		}
+		else
+		{
+			placementPreview->SetActorHiddenInGame(true);
+		}
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Input
 void AFarmSimCharacter::CameraUpAction_Implementation(float Rate)
@@ -182,32 +235,11 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 	{
 		break;
 	}
-	case PlayerToolStatus::ShovelOut: //Line trace ddown digDistance in front of the player and check if the ground is free if so create a growth plot there
+	case PlayerToolStatus::ShovelOut: //Line trace down digDistance in front of the player and check if the ground is free if so create a growth plot there
 	{
-		const FName TraceTag("MyTraceTag");
-		GetWorld()->DebugDrawTraceTag = TraceTag;
+		FHitResult RV_Hit = placementLineTraceDown();
 
-		FHitResult RV_Hit(ForceInit);
-		FCollisionQueryParams RV_TraceParams = FCollisionQueryParams(FName(TEXT("RV_Trace")), false, this);
-		RV_TraceParams.bTraceComplex = true;
-		RV_TraceParams.bReturnPhysicalMaterial = false;
-		RV_TraceParams.AddIgnoredActor(this);
-		RV_TraceParams.TraceTag = TraceTag;
-
-		FVector startPoint = GetActorLocation() + (GetActorForwardVector() * digDistance);
-		FVector endPoint = startPoint;
-		endPoint.Z -= 300;
-
-
-		bool hit = GetWorld()->LineTraceSingleByChannel(
-			RV_Hit,
-			startPoint,
-			endPoint,
-			ECC_Camera,
-			RV_TraceParams
-		);
-
-		if (hit && IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("GrowthPlot"))
+		if (IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("GrowthPlot"))
 		{
 			if (!Cast<AGrowthPlot>(RV_Hit.GetActor())->isInUse())
 			{
@@ -218,8 +250,9 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 				return;
 			}
 		}
-		if (hit && IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("Ground"))//Revist this later for better way to determine if its hitting the ground or not
+		else if (IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("Ground"))//Revist this later for better way to determine if its hitting the ground or not
 		{
+			FString actName = RV_Hit.GetActor()->GetName();
 			//Currenlty only checking the middle, check if the slope is bigger than the maxiumun slope for placeable objects
 			if (UKismetMathLibrary::Abs(RV_Hit.Normal.Y) > maxSlope)
 			{
@@ -228,8 +261,6 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 			else
 			{
 				FVector placementPoint = RV_Hit.ImpactPoint;
-				placementPoint.X = UKismetMathLibrary::GridSnap_Float(placementPoint.X, gridSnap);
-				placementPoint.Y = UKismetMathLibrary::GridSnap_Float(placementPoint.Y, gridSnap);
 				placementPoint.Z += growthPlotZExtent;
 
 				FActorSpawnParameters myParams;
@@ -262,7 +293,7 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 			RV_Hits,
 			true);
 
-		for (FHitResult hit : RV_Hits)
+		for (const FHitResult hit : RV_Hits)
 		{
 			if (IsValid(hit.GetActor()))
 			{
@@ -276,6 +307,12 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 		}
 		break;
 	}
+	case PlayerToolStatus::PickaxeOut://These two just send a message to interact with the harvest locations so that interact and use tool can be done using either key
+		InteractAction();
+		break;
+	case PlayerToolStatus::AxeOut:
+		InteractAction();
+		break;
 	default:
 		break;
 	}
@@ -341,6 +378,7 @@ void AFarmSimCharacter::changeEquippedTool_Implementation(PlayerToolStatus newTo
 {
 	if (newTool == toolStatus)
 	{
+		prevToolStatus = toolStatus;
 		toolStatus = PlayerToolStatus::NoToolOut;
 	}
 	else
@@ -349,23 +387,37 @@ void AFarmSimCharacter::changeEquippedTool_Implementation(PlayerToolStatus newTo
 		{
 
 		case PlayerToolStatus::PickaxeOut:
+			prevToolStatus = toolStatus;
 			toolStatus = PlayerToolStatus::PickaxeOut;
 			break;
 		case PlayerToolStatus::AxeOut:
+			prevToolStatus = toolStatus;
 			toolStatus = PlayerToolStatus::AxeOut;
 			break;
 		case PlayerToolStatus::ShovelOut:
+			prevToolStatus = toolStatus;
 			toolStatus = PlayerToolStatus::ShovelOut;
 			break;
 		case PlayerToolStatus::WateringCanOut:
+			prevToolStatus = toolStatus;
 			toolStatus = PlayerToolStatus::WateringCanOut;
 			break;
 		case PlayerToolStatus::FishingRodOut:
+			prevToolStatus = toolStatus;
 			toolStatus = PlayerToolStatus::FishingRodOut;
 			break;
 		default:
 			break;
 		}
+	}
+
+	//Broadcast change for UI and model changes
+	PlayerToolChanged.Broadcast(toolStatus);
+
+	if ((prevToolStatus == PlayerToolStatus::ShovelOut || prevToolStatus == PlayerToolStatus::WateringCanOut) && IsValid(placementPreview))
+	{
+		placementPreview->Destroy();
+		placementPreview = nullptr;
 	}
 }
 
@@ -404,3 +456,74 @@ void AFarmSimCharacter::setPlayerStatus(PlayerStatus newStatus)
 	PlayerStatusChanged.Broadcast(curPlayerStatus);
 }
 
+void AFarmSimCharacter::changeTool(FName toolType, FToolInvItem newTool)
+{
+	for (int i = 0; i < currentTools.Num(); ++i)
+	{
+		if (currentTools[i].type == toolType)
+		{
+			if ((int)currentTools[i].toolTier < (int)newTool.toolTier)
+			{
+				currentTools[i] = newTool;
+			}
+		}
+	}
+}
+
+FToolInvItem AFarmSimCharacter::grabTool(FName toolType)
+{
+	for (int i = 0; i < currentTools.Num(); ++i)
+	{
+		if (currentTools[i].type == toolType)
+		{
+			return currentTools[i];
+		}
+	}
+
+	return currentTools[0];//Impossible to ever reach
+}
+
+
+//Reuseable line trace down digDistance in front of player and snapped to grid
+FHitResult AFarmSimCharacter::placementLineTraceDown(bool snapToGrid, bool drawDebug)
+{
+	FHitResult RV_Hit(ForceInit);
+	FCollisionQueryParams RV_TraceParams = FCollisionQueryParams(FName(TEXT("RV_Trace")), false, this);
+	RV_TraceParams.bTraceComplex = true;
+	RV_TraceParams.bReturnPhysicalMaterial = false;
+	RV_TraceParams.AddIgnoredActor(this);
+	
+	if (IsValid(placementPreview))
+	{
+		RV_TraceParams.AddIgnoredActor(placementPreview);
+	}
+
+	if (drawDebug)
+	{
+		const FName TraceTag("MyTraceTag");
+		GetWorld()->DebugDrawTraceTag = TraceTag;
+		RV_TraceParams.TraceTag = TraceTag;
+	}
+
+	FVector startPoint = GetActorLocation() + (GetActorForwardVector() * digDistance);
+
+	if (snapToGrid)
+	{
+		startPoint.X = UKismetMathLibrary::GridSnap_Float(startPoint.X, gridSnap);
+		startPoint.Y = UKismetMathLibrary::GridSnap_Float(startPoint.Y, gridSnap);
+	}
+
+	FVector endPoint = startPoint;
+	endPoint.Z -= 300;
+
+
+	bool hit = GetWorld()->LineTraceSingleByChannel(
+		RV_Hit,
+		startPoint,
+		endPoint,
+		ECC_Visibility,
+		RV_TraceParams
+	);
+
+	return RV_Hit;
+}

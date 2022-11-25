@@ -71,4 +71,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void createLootBag(FInvItem itemToDrop, int slot = -1);
+
+	UFUNCTION(BlueprintCallable)
+	bool isEmpty();
 };
