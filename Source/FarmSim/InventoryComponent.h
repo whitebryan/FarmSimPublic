@@ -9,6 +9,7 @@
 #include "InventoryComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInvChangedDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRowsAddedDelegate);
 
 UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FARMSIM_API UInventoryComponent : public UActorComponent
@@ -26,8 +27,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FInvItem> inventoryArray;
 
-	UPROPERTY(EditAnywhere, meta = (ToolTip = "The number of rows to put in this inventory, rows are 5 columns each."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "1", ClampMax = "5", UMin = "1", UMax = "5", ToolTip = "The number of rows to put in this inventory, rows are 5 columns each."))
 	int inventoryRows = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "1", ClampMax = "5", UMin = "1", UMax = "5", ToolTip = "The Max number of rows that can be added to this inventory."))
+	int maxInventoryRows = 5;
 
 	UPROPERTY(EditAnywhere)
 	FInvItem emptyItem;
@@ -38,9 +41,17 @@ protected:
 public:	
 	UPROPERTY(BlueprintAssignable, Category = "Delegates")
 	FOnInvChangedDelegate OnInvChanged;
+	UPROPERTY(BlueprintAssignable, Category = "Delegates")
+	FOnRowsAddedDelegate OnRowsAddedd;
+
+	UFUNCTION(BlueprintCallable)
+	void addNewRows(int numRows = 1);
 
 	UFUNCTION(BlueprintCallable)
 	bool addNewItem(FInvItem newItem);
+
+	UFUNCTION(BlueprintCallable)
+	void addItemAtSlot(FInvItem newItem, int slot);
 
 	UFUNCTION(BlueprintCallable)
 	void moveItem(int from, int to);

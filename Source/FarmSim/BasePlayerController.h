@@ -79,6 +79,8 @@ protected:
 	UFUNCTION()
 	void EquipFishingRodAction(const FInputActionValue& Value);
 
+	UFUNCTION()
+	void FishingCastAction(const FInputActionValue& Value);
 
 public:
 	UPROPERTY(BlueprintReadOnly)

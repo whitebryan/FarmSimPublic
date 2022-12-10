@@ -200,3 +200,18 @@ void ABasePlayerController::EquipFishingRodAction(const FInputActionValue& Value
 		PossessedCharacter->changeEquippedTool(PlayerToolStatus::FishingRodOut);
 	}
 }
+
+void ABasePlayerController::FishingCastAction(const FInputActionValue& Value)
+{
+	if (PossessedCharacter && PossessedCharacter->getEquippeddTool() == PlayerToolStatus::FishingRodOut)
+	{
+		if (Value.GetMagnitude() == 1)
+		{
+			PossessedCharacter->FishingCastAction(true);
+		}
+		else
+		{
+			PossessedCharacter->FishingCastAction(false);
+		}
+	}
+}

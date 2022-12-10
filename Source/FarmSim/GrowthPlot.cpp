@@ -28,13 +28,15 @@ void AGrowthPlot::Tick(float DeltaTime)
 }
 
 
-void AGrowthPlot::plantCrop(FName cropName)
+bool AGrowthPlot::plantCrop(FName cropName)
 {
 	FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(cropName, FString(""));
 
 	//Return if data table is faulty
-	if(curPlantRow == nullptr)
-		return;
+	if (curPlantRow == nullptr)
+	{
+		return false;
+	}
 
 	ABasePlant* newPlant;
 	TArray<FString> availSeasons = curPlantRow->availSeasons;
@@ -51,7 +53,11 @@ void AGrowthPlot::plantCrop(FName cropName)
 		{
 			changeInteractability();
 		}
+
+		return true;
 	}
+
+	return false;
 }
 
 void AGrowthPlot::changeInteractability()

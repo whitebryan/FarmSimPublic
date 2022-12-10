@@ -8,7 +8,7 @@ public class FarmSim : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "EnhancedInput", "SimpleInteract"});
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "PhysicsCore", "HeadMountedDisplay", "EnhancedInput", "SimpleInteract"});
 		PublicIncludePaths.AddRange(new string[] {"D:/GameDev/Unreal/FarmSim/Plugins/SimpleInteract/Source/SimpleInteract/Public"});
 	}
 }

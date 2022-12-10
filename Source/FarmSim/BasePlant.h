@@ -6,6 +6,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/Actor.h"
 #include "Engine/DataTable.h"
+#include "Math/Color.h"
 #include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractInterface.h"
 #include "BasePlant.generated.h"
 
@@ -38,7 +39,10 @@ protected:
 
 	int curBreakPoint = 0;
 
-	FTimerHandle wateredTimer;
+	UPROPERTY(BlueprintReadOnly)
+	float wateredTimer = 0;
+	UPROPERTY(BlueprintReadOnly)
+	float wateredPercent = 1;
 
 	UPROPERTY(BlueprintReadWrite)
 	UStaticMeshComponent* plantMeshComp;
@@ -58,20 +62,30 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ToolTip = "The name of the plant in the dataTable"))
 	FName plantName = "default";
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "1", ClampMax = "999", UIMin = "1", UIMax = "999", ToolTip = "Real time seconds to full growth"))
 	int secondsToGrow = 99999;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "1", UIMin = "1", ToolTip = "Minimun amount harvested per harvest"))
 	int harvestMin = 1;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ToolTip = "Maximum amount to harvest per harvest"))
 	int harvestMax = 2;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "1", ClampMax = "5", UIMin = "1", UIMax = "5", ToolTip = "How many times you will need to water the plant broken into even chunks"))
 	int timesToWater = 1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ToolTip = "The unwatered version of the plant"))
 	UStaticMesh* unwateredModel;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ToolTip = "The watered but non grown version of the plant"))
 	UStaticMesh* wateredGrowingModel;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ToolTip = "The grown version of the plant"))
 	UStaticMesh* grownModel;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FLinearColor wateredColor;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FLinearColor needsWaterColor;
+
 	UPROPERTY()
 	AActor* myPlot = nullptr;
 

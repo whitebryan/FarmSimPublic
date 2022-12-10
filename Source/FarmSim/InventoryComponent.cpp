@@ -21,12 +21,23 @@ void UInventoryComponent::BeginPlay()
 
 	emptyItem = FInvItem();
 
-	//Init array with empty place holder items
-	for (int i = 0; i < (inventoryRows * 5); ++i)
+	addNewRows(inventoryRows);
+}
+
+//Adds another row of empty slots to the inventory
+void UInventoryComponent::addNewRows(int numRows)
+{
+	if (inventoryArray.Num() / 5 == maxInventoryRows)
+	{
+		return;
+	}
+
+	for (int i = 0; i < (numRows * 5); ++i)
 	{
 		inventoryArray.Add(emptyItem);
-		OnInvChanged.Broadcast();
 	}
+
+	OnRowsAddedd.Broadcast();
 }
 
 //Returns true if open slot and added, false otherwise
@@ -46,6 +57,12 @@ bool UInventoryComponent::addNewItem(FInvItem newItem)
 	return false;
 }
 
+//Assume its only called for empty slots, currently only used from drag and drop UI
+void UInventoryComponent::addItemAtSlot(FInvItem newItem, int slot)
+{
+	inventoryArray[slot] = newItem;
+	OnInvChanged.Broadcast();
+}
 
 
 void UInventoryComponent::moveItem(int from, int to)
@@ -61,7 +78,7 @@ void UInventoryComponent::moveItem(int from, int to)
 			inventoryArray[to].quantity += inventoryArray[from].quantity;
 			removeItem(from);
 		}
-		else if( prevItem.quantity != 99 || inventoryArray[from].quantity != 99)
+		else
 		{
 			int amountToLeave = (prevItem.quantity + inventoryArray[from].quantity ) - 99;
 			inventoryArray[to].quantity = 99;
@@ -316,7 +333,7 @@ void UInventoryComponent::createLootBag(FInvItem itemToDrop, int slot)
 	
 	UActorComponent* newInvComp = newLootBag->GetComponentByClass(UInventoryComponent::StaticClass());
 	bool tryDrop = Cast<UInventoryComponent>(newInvComp)->addNewItem(itemToDrop);
-	if (tryDrop && slot > 0 && slot < inventoryArray.Num())
+	if (tryDrop && slot >= 0 && slot < inventoryArray.Num())
 	{
 		removeItem(slot);
 	}

@@ -72,13 +72,16 @@ public:
 	void UseToolAction();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void FishingCastAction(bool pressed);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void ScrollItemsAction(float Value);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void EscMenuAction();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void OpenInventoryAction();
+	void OpenInventoryAction(bool open = false, bool toggle = true);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void changeEquippedTool(PlayerToolStatus newTool);
@@ -106,6 +109,7 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 	PlayerToolStatus getEquippeddTool() { return toolStatus; };
+	PlayerStatus getPlayerStatus() { return curPlayerStatus; };
 
 	//UI Functions
 	UFUNCTION(BlueprintImplementableEvent)
@@ -145,7 +149,7 @@ protected:
 	TSubclassOf<class AActor> wateringCanPreview;
 
 	UFUNCTION(BlueprintCallable)
-	FHitResult placementLineTraceDown(bool snapToGrid = true, bool drawDebug = false);
+	FHitResult placementLineTraceDown(bool snapToGrid = true, bool drawDebug = false, float distanceMod = 1);
 
 	AActor* placementPreview;
 	//
@@ -159,5 +163,22 @@ protected:
 	//Tool stuff
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<FToolInvItem> currentTools;
+
+	//Fishing Stuff'
+	UPROPERTY(EditAnywhere, Category = "Fishing")
+	TSubclassOf<AActor> fishingIndicatorBlueprint;
+	UPROPERTY(EditAnywhere, Category = "Fishing")
+	TSubclassOf<AActor> fishingMiniGameBlueprint;
+	AActor* curFishingIndicator;
+	UPROPERTY(EditAnywhere, Category = "Fishing", meta = (ClampMin = "5", ClampMax = "50", UMin = "5", UMax = "50", Tooltip ="How far the player can cast while fishing"))
+	float maxCastDistance = 20;
+	float curDistance = 1;
+	AActor* curFishingMiniGame;
+	UFUNCTION()
+	void fishingMiniGameDelegateFunc(bool Status, FInvItem FishCaught);
+
+	UFUNCTION(BlueprintCallable)
+	bool checkForPhysMat(FVector location, EPhysicalSurface surfaceToCheckFor);
+	//
 };
 

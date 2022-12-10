@@ -49,6 +49,7 @@ void AHarvestable::tryHarvest() //Check if the players tool is able to harvest t
 
 						FInvItem newItem;
 						newItem.name = itemName;
+						newItem.description = curItemRow->description;
 
 						if (!requiresTool)
 						{
@@ -108,6 +109,7 @@ void AHarvestable::tryHarvest() //Check if the players tool is able to harvest t
 							FInvTableItem* curItemRow = harvestablesTable->FindRow<FInvTableItem>(itemName, FString(""));
 							FInvItem newItem;
 							newItem.name = itemName;
+							newItem.description = curItemRow->description;
 							newItem.quantity = harvestAmount + ((uint8)playerTool.toolTier - (uint8)toolLevel) * 2;
 							newItem.type = curItemRow->type;
 							newItem.icon = curItemRow->icon;

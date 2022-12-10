@@ -30,6 +30,17 @@ void ABasePlant::BeginPlay()
 void ABasePlant::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if (curStatus == GrowthStatus::Watered && wateredTimer >= (secondsToGrow / timesToWater))
+	{
+		wateredTimer = 0;
+		wateredPercent = 1;
+		breakPointChange(curBreakPoint + 1);
+	}
+	else if(curStatus == GrowthStatus::Watered)
+	{
+		wateredTimer += DeltaTime;
+		wateredPercent = (wateredTimer/(secondsToGrow/timesToWater));
+	}
 }
 
 //Setups a plant and changes its growth status if being reloaded
@@ -89,18 +100,9 @@ void ABasePlant::waterPlant()
 	if (curStatus != GrowthStatus::NeedsWater)
 		return;
 
+	wateredPercent = 0;
 	statusChange(GrowthStatus::Watered);
 	toggleInteractibility();
-
-	if (GetWorld())
-	{
-		FTimerDelegate TimerDel;      
-		TimerDel.BindUFunction(this, "breakPointChange", curBreakPoint + 1);
-
-		int timerLen = secondsToGrow / (timesToWater + 1);
-
-		GetWorldTimerManager().SetTimer(wateredTimer, TimerDel, timerLen, false);
-	}
 }
 
 //Called from blueprint when interacted with and done growing
@@ -120,6 +122,7 @@ void ABasePlant::harvestPlant()
 			FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(plantName, FString(""));
 			FInvItem newItem;
 			newItem.name = plantName;
+			newItem.description = curPlantRow->description;
 			newItem.quantity = harvestAmt;
 			newItem.type = curPlantRow->type;
 			newItem.icon = curPlantRow->icon;
@@ -153,6 +156,7 @@ void ABasePlant::harvestPlant()
 				FInvItem newItem;
 				newItem.name = plantName;
 				newItem.quantity = leftovers;
+				newItem.description = curPlantRow->description;
 				newItem.type = curPlantRow->type;
 				newItem.icon = curPlantRow->icon;
 

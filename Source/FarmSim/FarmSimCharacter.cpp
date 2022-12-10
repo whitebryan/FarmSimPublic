@@ -11,6 +11,12 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Chaos/ChaosEngineInterface.h"
+#include "FishingMiniGame.h"
+
+#define SurfaceTypeGround EPhysicalSurface::SurfaceType1
+#define SurfaceTypeWater EPhysicalSurface::SurfaceType2
 
 //////////////////////////////////////////////////////////////////////////
 // AFarmSimCharacter
@@ -124,13 +130,50 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 			placementPreview->SetActorHiddenInGame(true);
 		}
 	}
+	else if (curFishingIndicator && curPlayerStatus == PlayerStatus::FishingCasting)
+	{
+		if (curDistance >= maxCastDistance)
+		{
+			curDistance = 1;
+			bool waterHit = checkForPhysMat(curFishingIndicator->GetActorLocation(), SurfaceTypeWater);
+
+			if (waterHit)
+			{
+				setPlayerStatus(PlayerStatus::Fishing);
+				if (GetWorld())
+				{
+					FRotator newRot = GetActorRotation();
+					newRot = UKismetMathLibrary::MakeRotator(0, 0, newRot.Yaw);
+
+					FActorSpawnParameters myParams;
+					myParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+					curFishingMiniGame = GetWorld()->SpawnActor<AActor>(fishingMiniGameBlueprint, curFishingIndicator->GetActorLocation(), newRot);
+					Cast<AFishingMiniGame>(curFishingMiniGame)->fishingFinished.AddDynamic(this, &AFarmSimCharacter::fishingMiniGameDelegateFunc);
+				}
+			}
+			else
+			{
+				setPlayerStatus(PlayerStatus::NormalState);
+			}
+
+			curFishingIndicator->Destroy();
+		}
+		else
+		{
+			FHitResult findGround = placementLineTraceDown(false, false, curDistance);
+			curFishingIndicator->SetActorLocation(findGround.ImpactPoint);
+
+			curDistance += DeltaTime;
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
 // Input
 void AFarmSimCharacter::CameraUpAction_Implementation(float Rate)
 {
-	if (curPlayerStatus != PlayerStatus::NormalState)
+	if (curPlayerStatus != PlayerStatus::NormalState && curPlayerStatus != PlayerStatus::Fishing && curPlayerStatus != PlayerStatus::FishingCasting)
 		return;
 
 	// calculate delta for this frame from the rate information
@@ -139,7 +182,7 @@ void AFarmSimCharacter::CameraUpAction_Implementation(float Rate)
 
 void AFarmSimCharacter::CameraRightAction_Implementation(float Rate)
 {
-	if (curPlayerStatus != PlayerStatus::NormalState)
+	if (curPlayerStatus != PlayerStatus::NormalState && curPlayerStatus != PlayerStatus::Fishing && curPlayerStatus != PlayerStatus::FishingCasting)
 		return;
 
 	// calculate delta for this frame from the rate information
@@ -186,16 +229,26 @@ void AFarmSimCharacter::InteractAction_Implementation()
 		else if (interactActorComp->interactionType == "Loot")
 		{
 			setPlayerStatus(PlayerStatus::InStorage);
+			OpenInventoryAction(true, false);
 		}
 		else if (curPlayerStatus == PlayerStatus::Planting)
 		{
 			FName cropToPlant = myInventoryComp->getItemAtSlot(curSelectedSeedSlot).name;
 			AGrowthPlot* curPlot = Cast<AGrowthPlot>(interactActorComp->GetOwner());
-			curPlot->plantCrop(cropToPlant);
-			int test = myInventoryComp->changeQuantity(cropToPlant, -1);
+			bool tryPlant = curPlot->plantCrop(cropToPlant);
+			
+			if (tryPlant)
+			{
+				myInventoryComp->changeQuantity(cropToPlant, -1);
 
-			setPlayerStatus(PlayerStatus::NormalState);
-			setSelectedItem(false);
+				setPlayerStatus(PlayerStatus::NormalState);
+				setSelectedItem(false);
+			}
+			else
+			{
+				displayNotification("This plant cannot be planted during this season.");
+			}
+
 			return;
 		}
 		else if (interactActorComp->interactionType == "GrowthPlot")
@@ -221,6 +274,13 @@ void AFarmSimCharacter::InteractAction_Implementation()
 			IInteractInterface::Execute_Interact(interactActorComp);
 		}
 	}
+	else if (curPlayerStatus == PlayerStatus::Fishing)
+	{
+		if (curFishingMiniGame->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+		{
+			IInteractInterface::Execute_Interact(curFishingMiniGame);
+		}
+	}
 	else//If no component use tool
 	{
 		UseToolAction();
@@ -231,13 +291,11 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 {
 	switch (toolStatus)
 	{
-	case PlayerToolStatus::FishingRodOut:
-	{
-		break;
-	}
 	case PlayerToolStatus::ShovelOut: //Line trace down digDistance in front of the player and check if the ground is free if so create a growth plot there
 	{
 		FHitResult RV_Hit = placementLineTraceDown();
+
+		EPhysicalSurface surfaceHit = UGameplayStatics::GetSurfaceType(RV_Hit);
 
 		if (IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("GrowthPlot"))
 		{
@@ -250,7 +308,7 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 				return;
 			}
 		}
-		else if (IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("Ground"))//Revist this later for better way to determine if its hitting the ground or not
+		else if (surfaceHit == SurfaceTypeGround)//Revist this later for better way to determine if its hitting the ground or not
 		{
 			FString actName = RV_Hit.GetActor()->GetName();
 			//Currenlty only checking the middle, check if the slope is bigger than the maxiumun slope for placeable objects
@@ -313,10 +371,69 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 	case PlayerToolStatus::AxeOut:
 		InteractAction();
 		break;
+	case PlayerToolStatus::FishingRodOut:
+		if (curPlayerStatus == PlayerStatus::Fishing)
+		{
+			InteractAction();
+		}
+		break;
 	default:
 		break;
 	}
 }
+
+
+//check if it was in water at the end then start the minigame if it was
+//minigame like disney for now, circle closes in press interact/use tool while in the circle
+//if successful pull random fish from this areas fish table and add it to inventory if room or drop it on the ground if no room
+
+//Separate function used for fishing casting because I need to use pressed and released actions
+void AFarmSimCharacter::FishingCastAction_Implementation(bool pressed)
+{
+	if(curPlayerStatus == PlayerStatus::Fishing || IsValid(curFishingMiniGame))
+		return;
+
+	if (pressed && curPlayerStatus == PlayerStatus::NormalState)
+	{
+		setPlayerStatus(PlayerStatus::FishingCasting);
+
+		FActorSpawnParameters myParams;
+		myParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		FHitResult findGround = placementLineTraceDown(false, false);
+
+		curFishingIndicator = GetWorld()->SpawnActor<AActor>(fishingIndicatorBlueprint, findGround.ImpactPoint, GetActorRotation(), myParams);
+	}
+	else if(curPlayerStatus == PlayerStatus::FishingCasting)
+	{
+		curDistance = 1;
+		bool waterHit = checkForPhysMat(curFishingIndicator->GetActorLocation(), SurfaceTypeWater);
+
+		if (waterHit)
+		{
+			setPlayerStatus(PlayerStatus::Fishing);
+			if (GetWorld())
+			{
+				FRotator newRot = GetActorRotation();
+				newRot = UKismetMathLibrary::MakeRotator(0, 0, newRot.Yaw);
+
+				FActorSpawnParameters myParams;
+				myParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+				curFishingMiniGame = GetWorld()->SpawnActor<AActor>(fishingMiniGameBlueprint, curFishingIndicator->GetActorLocation(), newRot);
+				Cast<AFishingMiniGame>(curFishingMiniGame)->fishingFinished.AddDynamic(this, &AFarmSimCharacter::fishingMiniGameDelegateFunc);
+			}
+		}
+		else
+		{
+			setPlayerStatus(PlayerStatus::NormalState);
+		}
+
+		curFishingIndicator->Destroy();
+	}
+}
+
+
 
 void AFarmSimCharacter::JumpAction_Implementation(bool isJumping)
 {
@@ -428,6 +545,11 @@ void AFarmSimCharacter::EscMenuAction_Implementation()
 	{
 	case PlayerStatus::InStorage:
 		InteractAction();
+		OpenInventoryAction(false, false);
+		break;
+	case PlayerStatus::InInventory:
+		OpenInventoryAction(false, false);
+		setPlayerStatus(PlayerStatus::NormalState);
 		break;
 	case PlayerStatus::Planting:
 		setPlayerStatus(PlayerStatus::NormalState);
@@ -442,15 +564,19 @@ void AFarmSimCharacter::EscMenuAction_Implementation()
 	}
 }
 
-void AFarmSimCharacter::OpenInventoryAction_Implementation()
+void AFarmSimCharacter::OpenInventoryAction_Implementation(bool open, bool toggle)
 {
-	//Nothing for now
 }
 
 
 //Change current player status and broadcast to all those listening
 void AFarmSimCharacter::setPlayerStatus(PlayerStatus newStatus)
 {
+	if (newStatus == PlayerStatus::InInventory && curPlayerStatus == PlayerStatus::InStorage)
+	{
+		return;
+	}
+
 	prevPlayerStatus = curPlayerStatus;
 	curPlayerStatus = newStatus;
 	PlayerStatusChanged.Broadcast(curPlayerStatus);
@@ -485,13 +611,14 @@ FToolInvItem AFarmSimCharacter::grabTool(FName toolType)
 
 
 //Reuseable line trace down digDistance in front of player and snapped to grid
-FHitResult AFarmSimCharacter::placementLineTraceDown(bool snapToGrid, bool drawDebug)
+FHitResult AFarmSimCharacter::placementLineTraceDown(bool snapToGrid, bool drawDebug, float distanceMod)
 {
 	FHitResult RV_Hit(ForceInit);
 	FCollisionQueryParams RV_TraceParams = FCollisionQueryParams(FName(TEXT("RV_Trace")), false, this);
 	RV_TraceParams.bTraceComplex = true;
 	RV_TraceParams.bReturnPhysicalMaterial = false;
 	RV_TraceParams.AddIgnoredActor(this);
+	RV_TraceParams.bReturnPhysicalMaterial = true;
 	
 	if (IsValid(placementPreview))
 	{
@@ -505,7 +632,7 @@ FHitResult AFarmSimCharacter::placementLineTraceDown(bool snapToGrid, bool drawD
 		RV_TraceParams.TraceTag = TraceTag;
 	}
 
-	FVector startPoint = GetActorLocation() + (GetActorForwardVector() * digDistance);
+	FVector startPoint = GetActorLocation() + (GetActorForwardVector() * digDistance * distanceMod);
 
 	if (snapToGrid)
 	{
@@ -526,4 +653,74 @@ FHitResult AFarmSimCharacter::placementLineTraceDown(bool snapToGrid, bool drawD
 	);
 
 	return RV_Hit;
+}
+
+void AFarmSimCharacter::fishingMiniGameDelegateFunc(bool Status, FInvItem FishCaught)
+{
+	if (!Status)
+	{
+		displayNotification("The fish got away.");
+	}
+	else
+	{
+		FString notif = "You caught " + FString::FromInt(FishCaught.quantity) + " " + FishCaught.name.ToString() + ".";
+		displayNotification(notif);
+
+		int quantintyCheck = myInventoryComp->getItemQuantity(FishCaught.name);
+
+		if (quantintyCheck > 0)
+		{
+			int leftOvers = myInventoryComp->changeQuantity(FishCaught.name, FishCaught.quantity);
+			if (leftOvers > 0)
+			{
+				FInvItem fishToDrop = FishCaught;
+				fishToDrop.quantity -= leftOvers;
+				myInventoryComp->createLootBag(fishToDrop);
+			}
+		}
+		else
+		{
+			bool added = myInventoryComp->addNewItem(FishCaught);
+			if (!added)
+			{
+				myInventoryComp->createLootBag(FishCaught);
+			}
+		}
+	}
+
+	setPlayerStatus(PlayerStatus::NormalState);
+}
+
+bool AFarmSimCharacter::checkForPhysMat(FVector location, EPhysicalSurface surfaceToCheckFor)
+{
+	FHitResult RV_Hit(ForceInit);
+	FCollisionQueryParams RV_TraceParams = FCollisionQueryParams(FName(TEXT("RV_Trace")), false, this);
+	RV_TraceParams.bTraceComplex = true;
+	RV_TraceParams.bReturnPhysicalMaterial = false;
+	RV_TraceParams.AddIgnoredActor(this);
+	RV_TraceParams.bReturnPhysicalMaterial = true;
+
+	FVector startPoint = location;
+	startPoint.Z += 20;
+	FVector endPoint = location;
+	endPoint.Z -= 100;
+
+	bool hit = GetWorld()->LineTraceSingleByChannel(
+		RV_Hit,
+		startPoint,
+		endPoint,
+		ECC_Visibility,
+		RV_TraceParams
+	);
+
+	EPhysicalSurface surfaceHit = UGameplayStatics::GetSurfaceType(RV_Hit);
+
+	if (surfaceHit != NULL && surfaceHit == surfaceToCheckFor)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }

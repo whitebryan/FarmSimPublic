@@ -40,7 +40,7 @@ public:
 
 	//Called when interacted with and plants given type
 	UFUNCTION(BlueprintCallable)
-	void plantCrop(FName cropName);
+	bool plantCrop(FName cropName);
 
 	UFUNCTION()
 	void changeInteractability();

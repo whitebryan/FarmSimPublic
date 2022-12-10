@@ -8,9 +8,11 @@
 UENUM(Blueprintable, BlueprintType)
 enum PlayerStatus
 {
-	NormalState UMETA(DisplayName = "NormalState"),
+	NormalState UMETA(DisplayName = "Normal State"),
 	Planting UMETA(DisplayName = "Planting"),
-	InStorage UMETA(DisplayName = "InStorage"),
+	InStorage UMETA(DisplayName = "In Storage"),
+	InInventory UMETA(DisplauName = "In Inventory"),
+	FishingCasting UMETA(DisplayName = "Fishing Casting"),
 	Fishing UMETA(DisplayName = "Fishing"),
 };
 

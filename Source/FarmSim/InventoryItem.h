@@ -17,6 +17,9 @@ public:
 	FName type;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FString description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UTexture2D* icon;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -34,6 +37,9 @@ struct FInvItem
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName name;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FString description;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "0", ClampMax = "99", UIMin = "0", UIMax = "99"))
 	int32 quantity;
