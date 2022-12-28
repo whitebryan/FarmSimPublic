@@ -39,84 +39,42 @@ void AHarvestable::tryHarvest() //Check if the players tool is able to harvest t
 
 				if (IsValid(playerInvComp))
 				{
-					if (playerInvComp->getItemQuantity(itemName) == 0)
+					FInvTableItem* curItemRow = harvestablesTable->FindRow<FInvTableItem>(itemID, FString(""));
+					if (curItemRow == nullptr)
 					{
-						FInvTableItem* curItemRow = harvestablesTable->FindRow<FInvTableItem>(itemName, FString(""));
-						if (curItemRow == nullptr)
-						{
-							return;
-						}
+						return;
+					}
 
-						FInvItem newItem;
-						newItem.name = itemName;
-						newItem.description = curItemRow->description;
+					FInvItem newItem;
+					newItem.uniqueID = itemID;
+					newItem.name = itemName;
+					newItem.description = curItemRow->description;
 
-						if (!requiresTool)
-						{
-							newItem.quantity = harvestAmount;
-						}
-						else
-						{
-							newItem.quantity = harvestAmount + ((uint8)playerTool.toolTier - (uint8)toolLevel) * 2;
-						}
-
-						newItem.type = curItemRow->type;
-						newItem.icon = curItemRow->icon;
-
-						bool harvested = playerInvComp->addNewItem(newItem);
-
-						if (!harvested)
-						{
-							player->displayNotification("Inventory full", 2);
-							return;
-						}
-						else
-						{
-							FString returnMessage = "Harvested " + FString::FromInt(newItem.quantity) + " " + itemName.ToString() + "(s)";
-							changeStatus(false);
-							if (!respawnAble)
-							{
-								Destroy();
-								player->displayNotification(returnMessage, 2);
-								return;
-							}
-							else
-							{
-								GetWorldTimerManager().SetTimer(respawnTimer, this, &AHarvestable::respawn, respawnTime, false);
-								player->displayNotification(returnMessage, 2);
-								return;
-							}
-						}
+					if (!requiresTool)
+					{
+						newItem.quantity = harvestAmount;
 					}
 					else
 					{
-						int amt;
+						newItem.quantity = harvestAmount + ((uint8)playerTool.toolTier - (uint8)toolLevel) * 2;
+					}
 
-						if (!requiresTool)
+					newItem.type = curItemRow->type;
+					newItem.icon = curItemRow->icon;
+
+					FAddItemStatus harvested = playerInvComp->addNewItem(newItem);
+
+					if (!harvested.addStatus)
+					{
+						player->displayNotification("Inventory full", 2);
+						return;
+					}
+					else
+					{
+						FString returnMessage = "Harvested " + FString::FromInt(newItem.quantity) + " " + itemName.ToString() + "(s)";
+						if (harvested.leftOvers > 0)
 						{
-							amt = harvestAmount;
-						}
-						else
-						{
-							amt = harvestAmount + ((uint8)playerTool.toolTier - (uint8)toolLevel) * 2;
-						}
-						int leftovers = playerInvComp->changeQuantity(itemName, amt);
-
-						FString returnMessage = "Harvested " + FString::FromInt(amt - leftovers) + " " + itemName.ToString() + "(s)";
-
-						if (leftovers > 0)
-						{
-							FInvTableItem* curItemRow = harvestablesTable->FindRow<FInvTableItem>(itemName, FString(""));
-							FInvItem newItem;
-							newItem.name = itemName;
-							newItem.description = curItemRow->description;
-							newItem.quantity = harvestAmount + ((uint8)playerTool.toolTier - (uint8)toolLevel) * 2;
-							newItem.type = curItemRow->type;
-							newItem.icon = curItemRow->icon;
-
-							playerInvComp->createLootBag(newItem);
-
-							returnMessage +='\n' + "Dropped " + FString::FromInt(leftovers);
+							returnMessage += '\n' + "Dropped " + FString::FromInt(harvested.leftOvers);
 						}
 
 						changeStatus(false);

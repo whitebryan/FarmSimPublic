@@ -6,8 +6,10 @@
 #include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractComponent.h"
 #include "GameFramework/Character.h"
 #include "PlayerStatus.h"
+#include "LocationStatus.h"
 #include "ToolItem.h"
 #include "InventoryComponent.h"
+#include "PlayerSaveManagerComponent.h"
 #include "FarmSimCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerStatusChange, PlayerStatus, newStatus);
@@ -128,6 +130,13 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TEnumAsByte<PlayerToolStatus> prevToolStatus = PlayerToolStatus::NoToolOut;
 
+	UPROPERTY(BlueprintReadOnly)
+	TEnumAsByte<LocationStatus> curPlayerLocation = LocationStatus::Valley;
+	UFUNCTION(BlueprintCallable)
+	LocationStatus getPlayerLocation() { return curPlayerLocation; };
+	UFUNCTION(BlueprintCallable)
+	void setPlayerLocation(LocationStatus newLoc) { curPlayerLocation = newLoc; };
+
 	//Grid snapping and item placement
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (ToolTip = "What number to round towards for grid snapping"))
 	int gridSnap = 5;
@@ -180,5 +189,8 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	bool checkForPhysMat(FVector location, EPhysicalSurface surfaceToCheckFor);
 	//
+
+	//Save game
+	UPlayerSaveManagerComponent* mySaveManager;
 };
 

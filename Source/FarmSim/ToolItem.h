@@ -24,6 +24,9 @@ struct FToolInvItem : public FTableRowBase
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FName uniqueID;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName toolName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

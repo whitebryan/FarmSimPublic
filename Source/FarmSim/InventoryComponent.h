@@ -47,8 +47,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void addNewRows(int numRows = 1);
 
-	UFUNCTION(BlueprintCallable)
-	bool addNewItem(FInvItem newItem);
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Adds as much from the stack of new item to the inventory as possible and drops the rest"))
+	FAddItemStatus addNewItem(FInvItem newItem, bool dropIfNoneAdded = false, bool dropIfPartialAdded = true);
 
 	UFUNCTION(BlueprintCallable)
 	void addItemAtSlot(FInvItem newItem, int slot);
@@ -63,16 +63,16 @@ public:
 	bool moveToNewInvComp(int slot, UInventoryComponent* newComp);
 
 	UFUNCTION(BlueprintCallable)
-	int getItemQuantity(FName itemType);
+	int getItemQuantity(FName itemID);
 
 	UFUNCTION(BlueprintCallable)
 	FInvItem getItemAtSlot(int slot);
 
 	UFUNCTION(BlueprintCallable)
-	int findNextItemOfType(int startPos, int direction, FName type);
+	int findNextItemOfType(int startPos, int direction, FName itemType);
 
 	UFUNCTION(BlueprintCallable)
-	int changeQuantity(FName itemType, int quantityToChange);
+	int changeQuantity(FName itemID, int quantityToChange);
 
 	UFUNCTION(BlueprintCallable)
 	bool splitStack(int slot, int newStackSize);

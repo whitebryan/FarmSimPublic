@@ -60,7 +60,9 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FPlantStatusChanged OnStatusUpdated;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ToolTip = "The name of the plant in the dataTable"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ToolTip = "The ID of the plant in the dataTable"))
+	FName plantID = "default";
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName plantName = "default";
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "1", ClampMax = "999", UIMin = "1", UIMax = "999", ToolTip = "Real time seconds to full growth"))

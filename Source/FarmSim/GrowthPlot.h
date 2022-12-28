@@ -45,7 +45,7 @@ public:
 	UFUNCTION()
 	void changeInteractability();
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	bool isInUse();
 };
 

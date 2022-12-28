@@ -26,6 +26,8 @@ protected:
 
 	//Item properties
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FName itemID = "default";
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName itemName = "default";
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

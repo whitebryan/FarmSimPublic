@@ -117,57 +117,37 @@ void ABasePlant::harvestPlant()
 
 	if (playerInvComp)
 	{
-		if (playerInvComp->getItemQuantity(plantName) == 0)
+		FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(plantID, FString(""));
+		FInvItem newItem;
+		newItem.uniqueID = plantID;
+		newItem.name = plantName;
+		newItem.description = curPlantRow->description;
+		newItem.quantity = harvestAmt;
+		newItem.type = curPlantRow->type;
+		newItem.icon = curPlantRow->icon;
+
+		FAddItemStatus harvested = playerInvComp->addNewItem(newItem);
+		FString harvestMessage;
+
+		//if player inventory is full return else make the plot useable again
+		if (!harvested.addStatus)
 		{
-			FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(plantName, FString(""));
-			FInvItem newItem;
-			newItem.name = plantName;
-			newItem.description = curPlantRow->description;
-			newItem.quantity = harvestAmt;
-			newItem.type = curPlantRow->type;
-			newItem.icon = curPlantRow->icon;
-
-			bool harvested = playerInvComp->addNewItem(newItem);
-
-			//if player inventory is full return else make the plot useable again
-			if (!harvested)
-			{
-				player->displayNotification("Inventory full");
-				return;
-			}
-			else
-			{
-				FString harvestMessage = "Harvested " + FString::FromInt(harvestAmt) + " " + plantName.ToString() + "(s)"; 
-				player->displayNotification(harvestMessage, 2);
-				Cast<AGrowthPlot>(myPlot)->changeInteractability();
-				Destroy();
-			}
+			player->displayNotification("Inventory full");
+			return;
 		}
-		else 
+		else if (harvested.leftOvers > 0)
 		{
-			int leftovers = playerInvComp->changeQuantity(plantName, harvestAmt);
-			Cast<AGrowthPlot>(myPlot)->changeInteractability();
-			
-			FString harvestMessage = "Harvested " + FString::FromInt(harvestAmt - leftovers) + " " + plantName.ToString() + "(s)";
-
-			if (leftovers > 0)
-			{
-				FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(plantName, FString(""));
-				FInvItem newItem;
-				newItem.name = plantName;
-				newItem.quantity = leftovers;
-				newItem.description = curPlantRow->description;
-				newItem.type = curPlantRow->type;
-				newItem.icon = curPlantRow->icon;
-
-				playerInvComp->createLootBag(newItem);
-				harvestMessage += " and dropped " + FString::FromInt(leftovers);
-			}
-
-			player->displayNotification(harvestMessage, 2);
-
-			Destroy();
+			harvestMessage = "Harvested " + FString::FromInt(harvestAmt - harvested.leftOvers) + " " + plantName.ToString() + "(s)";
+			harvestMessage += " and dropped " + FString::FromInt(harvested.leftOvers);
 		}
+		else
+		{
+			harvestMessage = "Harvested " + FString::FromInt(harvestAmt) + " " + plantName.ToString() + "(s)"; 
+		}
+
+		player->displayNotification(harvestMessage, 2);
+		Cast<AGrowthPlot>(myPlot)->changeInteractability();
+		Destroy();
 	}
 }
 

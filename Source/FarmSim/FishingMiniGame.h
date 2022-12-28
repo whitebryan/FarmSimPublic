@@ -35,15 +35,14 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (Tooltip = "If set this minigame will ONLY give this fish"))
 	FInvItem specificFish;
+
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (Tooltip = "Determines the speed and types of fish recieved from this minigame. Lower difficulties have a low chance to get a better quality fish but a higher difficulty can't go lower"))
 	TEnumAsByte<FishingDifficulty> miniGameQuality = FishingDifficulty::Easy;
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (Tooltip = "Chance to go get a fish a tier higher than difficutly"))
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (Tooltip = "Customizable Difficulty settings, String to float, Keys/Meaning EasySpd/speedMod, NormalSpd/speedMod, HardSpd/speedMod, NormalQnt/extraAmt, HardQnt/extraAmt oneUp/chance twoUp/chance"))
+	TMap<FString, float> difficultySettings;
 	float oneTierUpChance = 0.15f;
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (Tooltip = "Chance to go get a fish two tiers higher than difficutly"))
 	float twoTierUpChance = 0.05f;
 	float speedModifier = 0.25f;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (Tooltip = "Adds this amount of fish extra when succesfully fished"))
 	int quantityModifier = 0;
 
 	UPROPERTY(BlueprintReadWrite)
@@ -58,7 +57,7 @@ protected:
 	UPROPERTY(EditAnywhere)
 	FLinearColor successColor;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (Tooltip = "Data tables seperated by difficulty"))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (Tooltip = "Data tables seperated by difficulty"))
 	TMap<FString, UDataTable*> dataTables;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (Tooltip = "Time in seconds till it starts moving"))
@@ -78,7 +77,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Delegates")
 	FOnFishingDone fishingFinished;
 
+	UFUNCTION(BlueprintCallable)
+	void setDifficulty(FishingDifficulty diff);
 
 	//Interact interface reciever
 	void Interact(); virtual void Interact_Implementation() override;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void getDataTables();
 };

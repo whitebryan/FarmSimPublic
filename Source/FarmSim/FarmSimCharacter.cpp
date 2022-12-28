@@ -77,6 +77,9 @@ void AFarmSimCharacter::BeginPlay()
 			newPlot->Destroy();
 		}
 	}
+
+	mySaveManager = Cast<UPlayerSaveManagerComponent>(GetComponentByClass(UPlayerSaveManagerComponent::StaticClass()));
+	//mySaveManager->loadKeybinds();
 }
 
 void AFarmSimCharacter::Tick(float DeltaTime)
@@ -233,7 +236,7 @@ void AFarmSimCharacter::InteractAction_Implementation()
 		}
 		else if (curPlayerStatus == PlayerStatus::Planting)
 		{
-			FName cropToPlant = myInventoryComp->getItemAtSlot(curSelectedSeedSlot).name;
+			FName cropToPlant = myInventoryComp->getItemAtSlot(curSelectedSeedSlot).uniqueID;
 			AGrowthPlot* curPlot = Cast<AGrowthPlot>(interactActorComp->GetOwner());
 			bool tryPlant = curPlot->plantCrop(cropToPlant);
 			
@@ -666,26 +669,7 @@ void AFarmSimCharacter::fishingMiniGameDelegateFunc(bool Status, FInvItem FishCa
 		FString notif = "You caught " + FString::FromInt(FishCaught.quantity) + " " + FishCaught.name.ToString() + ".";
 		displayNotification(notif);
 
-		int quantintyCheck = myInventoryComp->getItemQuantity(FishCaught.name);
-
-		if (quantintyCheck > 0)
-		{
-			int leftOvers = myInventoryComp->changeQuantity(FishCaught.name, FishCaught.quantity);
-			if (leftOvers > 0)
-			{
-				FInvItem fishToDrop = FishCaught;
-				fishToDrop.quantity -= leftOvers;
-				myInventoryComp->createLootBag(fishToDrop);
-			}
-		}
-		else
-		{
-			bool added = myInventoryComp->addNewItem(FishCaught);
-			if (!added)
-			{
-				myInventoryComp->createLootBag(FishCaught);
-			}
-		}
+		FAddItemStatus addFish = myInventoryComp->addNewItem(FishCaught, true);
 	}
 
 	setPlayerStatus(PlayerStatus::NormalState);
@@ -696,7 +680,6 @@ bool AFarmSimCharacter::checkForPhysMat(FVector location, EPhysicalSurface surfa
 	FHitResult RV_Hit(ForceInit);
 	FCollisionQueryParams RV_TraceParams = FCollisionQueryParams(FName(TEXT("RV_Trace")), false, this);
 	RV_TraceParams.bTraceComplex = true;
-	RV_TraceParams.bReturnPhysicalMaterial = false;
 	RV_TraceParams.AddIgnoredActor(this);
 	RV_TraceParams.bReturnPhysicalMaterial = true;
 

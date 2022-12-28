@@ -45,7 +45,7 @@ bool AGrowthPlot::plantCrop(FName cropName)
 	if (availSeasons.Contains(curSeason))
 	{
 		//Spawn given plant at base location
-		newPlant =  GetWorld()->SpawnActor<ABasePlant>(curPlantRow->plantBlueprint, GetActorLocation(), GetActorRotation());
+		newPlant =  GetWorld()->SpawnActor<ABasePlant>(curPlantRow->itemBlueprint, GetActorLocation(), GetActorRotation());
 		newPlant->myPlot = this;
 
 		//Toggle interactability while a crop is growing here
