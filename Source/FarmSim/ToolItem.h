@@ -16,28 +16,3 @@ enum ToolTier
 	Gold = 3 UMETA(DisplayName = "Gold"),
 	Diamond = 4 UMETA(DisplayName = "Diamond"),
 };
-
-USTRUCT(BlueprintType, Blueprintable)
-struct FToolInvItem : public FTableRowBase
-{
-	GENERATED_USTRUCT_BODY()
-
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FName uniqueID;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FName toolName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FName type;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UTexture2D* icon;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<class AActor> model;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TEnumAsByte<ToolTier> toolTier;
-};

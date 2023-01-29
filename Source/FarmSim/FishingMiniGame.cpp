@@ -4,16 +4,17 @@
 #include "FishingMiniGame.h"
 #include "Kismet/KismetSystemLibrary.h" 
 #include "Kismet/KismetMathLibrary.h"
+#include "FarmSimCharacter.h"
 
 // Sets default values
 AFishingMiniGame::AFishingMiniGame()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	difficultySettings.Add("EasySpd", 0.45);
-	difficultySettings.Add("NormalSpd", 0.55);
+	difficultySettings.Add("EasySpd", 1.2);
+	difficultySettings.Add("NormalSpd", 1.65);
 	difficultySettings.Add("NormalQnt", 0);
-	difficultySettings.Add("HardSpd", 0.75);
+	difficultySettings.Add("HardSpd", 2.35);
 	difficultySettings.Add("HardQnt", 1);
 	difficultySettings.Add("oneUp", 0.15);
 	difficultySettings.Add("twoUp", 0.05);
@@ -52,9 +53,10 @@ void AFishingMiniGame::Tick(float DeltaTime)
 	FVector curScale = movingDecal->GetRelativeScale3D();
 	
 	//Check if the ring has reached the fail state if not keep scaling it down
-	if (curScale.Y <= 0.1 && curScale.Z <= 0.1)
+	if (curScale.Y <= 1.19f)
 	{
-		fishingFinished.Broadcast(false, specificFish);
+		FInvItem failed;
+		fishingFinished.Broadcast(false, failed);
 		active = false;
 
 		decalInstance->SetVectorParameterValue("Color", failedColor);
@@ -63,7 +65,7 @@ void AFishingMiniGame::Tick(float DeltaTime)
 	}
 	else
 	{
-		curScale.Z -= DeltaTime * speedModifier;
+		curScale.X -= DeltaTime * speedModifier;
 		curScale.Y -= DeltaTime * speedModifier;
 
 		movingDecal->SetRelativeScale3D(curScale);
@@ -80,14 +82,25 @@ void AFishingMiniGame::Interact_Implementation()
 	FVector movingScale = movingDecal->GetRelativeScale3D();
 	FVector ringScale = movingDecal->GetRelativeScale3D();
 
-	if(movingScale.Y <= 0.33 && movingScale.Y >= 0.22)
+	if(movingScale.Y <= 1.7f && movingScale.Y >= 1.2f)
 	{
 		decalInstance->SetVectorParameterValue("Color", successColor);
 		GetWorldTimerManager().SetTimer(destroyTimer, this, &AFishingMiniGame::finished, 0.3f, false);
 
-		if (specificFish.name != "Empty")
+		if (IsValid(specificFish) && specificFish->name != "Empty")
 		{
-			fishingFinished.Broadcast(true, specificFish);
+			FInvItem newInvItem;
+			newInvItem.quantity = 1 + quantityModifier;
+			newInvItem.item = specificFish;
+
+			float fishSize = UKismetMathLibrary::RandomFloatInRange(specificFish->minLenght, specificFish->maxLength);
+
+			AActor* player = Cast<AActor>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+
+			FFishRecordStruct fishStatus = Cast<UPlayerSaveManagerComponent>(player->GetComponentByClass(UPlayerSaveManagerComponent::StaticClass()))->fishCaught(specificFish->uniqueID, fishSize, specificFish->name);
+
+			newFishingRecord.Broadcast(fishStatus);
+			fishingFinished.Broadcast(true, newInvItem);
 		}
 		else
 		{
@@ -98,11 +111,11 @@ void AFishingMiniGame::Interact_Implementation()
 			switch (miniGameQuality)
 			{
 			case FishingDifficulty::Easy:
-				if (tableChance >= 0.95)
+				if (tableChance >= (1 - oneTierUpChance))
 				{
 					curTable = dataTables["Hard"];
 				}
-				else if(tableChance >= 0.85)
+				else if(tableChance >= (1 - twoTierUpChance))
 				{
 					curTable = dataTables["Normal"];
 				}
@@ -112,7 +125,7 @@ void AFishingMiniGame::Interact_Implementation()
 				}
 				break;
 			case FishingDifficulty::Normal:
-				if (tableChance >= 0.95)
+				if (tableChance >= (1 - oneTierUpChance))
 				{
 					curTable = dataTables["Hard"];
 				}
@@ -135,14 +148,20 @@ void AFishingMiniGame::Interact_Implementation()
 			FName fishID = rowNames[UKismetMathLibrary::RandomIntegerInRange(0, (rowNames.Num() - 1))];
 			FInvTableItem* fishToGive = curTable->FindRow<FInvTableItem>(fishID, FString(""));
 
-			specificFish.uniqueID = fishID;
-			specificFish.name = fishToGive->name;
-			specificFish.description = fishToGive->description;
-			specificFish.icon = fishToGive->icon;
-			specificFish.type = fishToGive->type;
-			specificFish.quantity = 1 + quantityModifier;
+			FInvItem newInvItem;
+			newInvItem.item = Cast<UItemAsset>(fishToGive->item);
+			newInvItem.quantity = 1 + quantityModifier;
 
-			fishingFinished.Broadcast(true, specificFish);
+			UFishItemAsset* curFish = Cast<UFishItemAsset>(newInvItem.item);
+
+			float fishSize = UKismetMathLibrary::RandomFloatInRange(curFish->minLenght, curFish->maxLength);
+
+			AActor* player = Cast<AActor>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+
+			FFishRecordStruct fishStatus = Cast<UPlayerSaveManagerComponent>(player->GetComponentByClass(UPlayerSaveManagerComponent::StaticClass()))->fishCaught(newInvItem.item->uniqueID, fishSize, newInvItem.item->name);
+
+			newFishingRecord.Broadcast(fishStatus);
+			fishingFinished.Broadcast(true, newInvItem);
 		}
 	}
 	else

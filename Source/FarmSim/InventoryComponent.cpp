@@ -10,7 +10,7 @@ UInventoryComponent::UInventoryComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
-
+	inventoryArray = TArray<FInvItem>();
 	// ...
 }
 
@@ -19,38 +19,58 @@ void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	emptyItem = FInvItem();
-
-	addNewRows(inventoryRows);
+	addNewRows(inventoryRows, true);
 }
 
 //Adds another row of empty slots to the inventory
-void UInventoryComponent::addNewRows(int numRows)
+bool UInventoryComponent::addNewRows(int numRows, bool ignoreUpgradeItem)
 {
 	if (inventoryArray.Num() / 5 == maxInventoryRows)
 	{
-		return;
+		return false;
+	}
+	else if (!ignoreUpgradeItem)
+	{
+		int itemAmt = getItemQuantity(upgradeItem->uniqueID);
+	
+		if(itemAmt >= amtToUpgrade)
+		{
+			changeQuantity(upgradeItem->uniqueID, -amtToUpgrade);
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 	for (int i = 0; i < (numRows * 5); ++i)
 	{
-		inventoryArray.Add(emptyItem);
+		FInvItem newEmptyItem = FInvItem();
+		newEmptyItem.quantity = 0;
+		newEmptyItem.item = emptyItem;
+		inventoryArray.Add(newEmptyItem);
 	}
 
 	OnRowsAddedd.Broadcast();
+	OnInvChanged.Broadcast();
+
+	return true;
 }
 
 //Adds to new slot if there is none in the inventory already, otherwise adds to stack
-FAddItemStatus UInventoryComponent::addNewItem(FInvItem newItem, bool dropIfFull, bool dropIfPartialAdded)
+FAddItemStatus UInventoryComponent::addNewItem(const FInvItem& newItem, bool dropIfFull, bool dropIfPartialAdded)
 {
-	int quant = getItemQuantity(newItem.uniqueID);
+	UItemAsset* itemAsset = newItem.item;
+
+	int quant = getItemQuantity(itemAsset->uniqueID);
 	FAddItemStatus statusReturn;
 	if (quant == 0)
 	{
 		//Put it in the first empty position
 		for (int i = 0; i < inventoryArray.Num(); ++i)
 		{
-			if (inventoryArray[i].uniqueID == FName("Empty"))
+			UItemAsset* curItem = inventoryArray[i].item;
+			if (curItem->uniqueID == FName("Empty"))
 			{
 				inventoryArray[i] = newItem;
 				OnInvChanged.Broadcast();
@@ -60,6 +80,8 @@ FAddItemStatus UInventoryComponent::addNewItem(FInvItem newItem, bool dropIfFull
 			}
 		}
 
+
+		//No room in inventory so create a lootbag if it was request thend return as failed
 		statusReturn.addStatus = false;
 
 		if (dropIfFull)
@@ -71,9 +93,9 @@ FAddItemStatus UInventoryComponent::addNewItem(FInvItem newItem, bool dropIfFull
 	}
 	else
 	{
-		int leftOvers = changeQuantity(newItem.uniqueID, newItem.quantity);
+		int leftOvers = changeQuantity(itemAsset->uniqueID, newItem.quantity);
 
-		if (leftOvers == newItem.quantity)
+		if (leftOvers == newItem.quantity)//None was able to be added
 		{
 			statusReturn.addStatus = false;
 			statusReturn.leftOvers = newItem.quantity;
@@ -85,7 +107,7 @@ FAddItemStatus UInventoryComponent::addNewItem(FInvItem newItem, bool dropIfFull
 
 			return statusReturn;
 		}
-		else if (leftOvers > 0)
+		else if (leftOvers > 0)//Some was able to be added
 		{
 			FInvItem itemToDrop = newItem;
 			itemToDrop.quantity = leftOvers;
@@ -103,7 +125,7 @@ FAddItemStatus UInventoryComponent::addNewItem(FInvItem newItem, bool dropIfFull
 }
 
 //Assume its only called for empty slots, currently only used from drag and drop UI
-void UInventoryComponent::addItemAtSlot(FInvItem newItem, int slot)
+void UInventoryComponent::addItemAtSlot(const FInvItem& newItem, int slot)
 {
 	inventoryArray[slot] = newItem;
 	OnInvChanged.Broadcast();
@@ -113,9 +135,12 @@ void UInventoryComponent::addItemAtSlot(FInvItem newItem, int slot)
 void UInventoryComponent::moveItem(int from, int to)
 {
 	FInvItem prevItem = inventoryArray[to];
+	UItemAsset* prevItemAsset = prevItem.item;
+
+	UItemAsset* toItemAsset = inventoryArray[from].item;
 
 	//If items are the same item combine stacks if possible
-	if (prevItem.uniqueID == inventoryArray[from].uniqueID)
+	if (prevItemAsset->uniqueID == toItemAsset->uniqueID)
 	{
 		//If combined they are a full stack or less combine into one stack, otherwise move a quantity
 		if (prevItem.quantity + inventoryArray[from].quantity <= 99)
@@ -141,16 +166,22 @@ void UInventoryComponent::moveItem(int from, int to)
 
 void UInventoryComponent::removeItem(int slot)
 {
-	inventoryArray[slot] = emptyItem;
+	FInvItem newEmptyItem = FInvItem();
+	newEmptyItem.quantity = 0;
+	newEmptyItem.item = emptyItem;
+
+	inventoryArray[slot] = newEmptyItem;
 	OnInvChanged.Broadcast();
 }
 
-int UInventoryComponent::getItemQuantity(FName itemType)
+int UInventoryComponent::getItemQuantity(const FName itemType)
 {
 	int curAmt = 0;
 	for(int i = 0; i < inventoryArray.Num(); ++i)
 	{
-		if (inventoryArray[i].uniqueID == itemType)
+		UItemAsset* curItemAsset = inventoryArray[i].item;
+
+		if (curItemAsset->uniqueID == itemType)
 		{
 			curAmt += inventoryArray[i].quantity;
 		}
@@ -169,7 +200,7 @@ FInvItem UInventoryComponent::getItemAtSlot(int slot)
 
 //Crashes if called from C++ for some reason
 //-1 returned means no item of type found
-int UInventoryComponent::findNextItemOfType(int startPos, int direction, FName type)
+int UInventoryComponent::findNextItemOfType(int startPos, int direction, const FName type)
 {
 	//-2 is a arbitrary number just used to get the first item of found of this type
 	if((startPos < 0 && startPos != -2) || startPos >= inventoryArray.Num())
@@ -205,7 +236,9 @@ int UInventoryComponent::findNextItemOfType(int startPos, int direction, FName t
 			return -1;
 		}
 
-		if (inventoryArray[i].type == type && i != startPos)
+		UItemAsset* curItem = inventoryArray[i].item;
+
+		if (curItem->type == type && i != startPos)
 		{
 			return i;
 		}
@@ -215,13 +248,26 @@ int UInventoryComponent::findNextItemOfType(int startPos, int direction, FName t
 	return -1;
 }
 
+//Simple check to see if ANY of the item type is in the inventory
+bool UInventoryComponent::itemTypeExists(const FName typeToSearchFor)
+{
+	for (int i = 0; i < inventoryArray.Num(); ++i)
+	{
+		UItemAsset* curItem = inventoryArray[i].item;
+
+		if(curItem->type == typeToSearchFor)
+			return true;
+	}
+	return false;
+}
+
 //Cannot add or remove MORE than 99 at one time
 //When removing assume this is ONLY called if there is enough to remove
 //When adding there can be leftovers to create new stack
 //Returns leftovers in the case of a full inventory 
 //Return -1 means there is no item of this type in inventory
 //Return -2 means you tried to change more than 99 at one time
-int UInventoryComponent::changeQuantity(FName itemID, int quantityToChange)
+int UInventoryComponent::changeQuantity(const FName itemID, int quantityToChange)
 {
 	if(quantityToChange > 99)
 		return -2;
@@ -231,7 +277,9 @@ int UInventoryComponent::changeQuantity(FName itemID, int quantityToChange)
 
 	for(int i = 0; i < inventoryArray.Num(); ++i)
 	{
-		if (inventoryArray[i].uniqueID == itemID)
+		UItemAsset* curItem = inventoryArray[i].item;
+
+		if (curItem->uniqueID == itemID)
 		{
 			int curAmt = inventoryArray[i].quantity;
 
@@ -241,12 +289,13 @@ int UInventoryComponent::changeQuantity(FName itemID, int quantityToChange)
 				OnInvChanged.Broadcast();
 				return 0;
 			}
-			else if (curAmt + amountLeftToChange < 0)
+			else if (curAmt + amountLeftToChange <= 0)
 			{
 				amountLeftToChange = amountLeftToChange - inventoryArray[i].quantity;
 				removeItem(i);
 				OnInvChanged.Broadcast();
 				i = 0;
+				return 0;
 			}
 			else if(curAmt + amountLeftToChange > 99 && curAmt != 99)
 			{
@@ -277,21 +326,25 @@ int UInventoryComponent::changeQuantity(FName itemID, int quantityToChange)
 
 		for(int i = 0; i < inventoryArray.Num(); ++i)
 		{
-			if (inventoryArray[i].uniqueID == FName("Empty") && emptySlot == -1)
+			UItemAsset* curItem = inventoryArray[i].item;
+
+			if (curItem->uniqueID == FName("Empty") && emptySlot == -1)
 			{
 				emptySlot = i;
 			}
-			else if (inventoryArray[i].uniqueID == itemID)
+			else if (curItem->uniqueID == itemID)
 			{
 				tempCopy = inventoryArray[i];
 			}
 		}
 
+		UItemAsset* tempItem = tempCopy.item;
+
 		if (emptySlot == -1)
 		{
 			return amountLeftToChange;
 		}
-		else if (tempCopy.uniqueID == FName("Empty"))
+		else if (tempItem->uniqueID == FName("Empty"))
 		{
 			return amountLeftToChange;
 		}
@@ -316,7 +369,9 @@ bool UInventoryComponent::splitStack(int slot, int newStackSize)
 	//Find empty spot then split or display error if no slots
 	for (int i = 0; i < inventoryArray.Num(); ++i)
 	{
-		if (inventoryArray[i].uniqueID == "Empty")
+		UItemAsset* curItem = inventoryArray[i].item;
+
+		if (curItem->uniqueID == "Empty")
 		{
 			inventoryArray[i] = inventoryArray[slot];
 			inventoryArray[i].quantity = newStackSize;
@@ -356,13 +411,55 @@ bool UInventoryComponent::moveToNewInvComp(int slot, UInventoryComponent* newCom
 
 
 //Function to allow the user to drop items on the ground or for say plants to request a loot bag dropped if the new amount would overflow
-void UInventoryComponent::createLootBag(FInvItem itemToDrop, int slot)
+void UInventoryComponent::createLootBag(const FInvItem& itemToDrop, int slot)
 {
+	//grab all lootbag actors
+	//run through and remove all out of range
+	//Try to add the item, without the ability to drop
+	//if leftovers try to add to other lootbags nearby
+	//or if no other lootbag make a new one
+	FInvItem item = itemToDrop;
+
+	TArray<AActor*> lootBags;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), lootBag, lootBags);
+
+	if (lootBags.Num() > 0)
+	{
+		for (int i = 0; i < lootBags.Num(); ++i)
+		{
+			if (FVector::Distance(GetOwner()->GetActorLocation(), lootBags[i]->GetActorLocation()) > mergeDist)
+			{
+				lootBags.RemoveAt(i);
+				i = 0;
+			}
+		}
+
+		if (lootBags.Num() > 0)
+		{
+			for (int i = 0; i < lootBags.Num(); ++i)
+			{
+				UInventoryComponent* curInv = Cast<UInventoryComponent>(lootBags[i]->GetComponentByClass(UInventoryComponent::StaticClass()));
+				FAddItemStatus newStatus = curInv->addNewItem(item, false, false);
+
+				if (newStatus.leftOvers == 0)
+				{
+					removeItem(slot);
+					return;
+				}
+				else
+				{
+					item.quantity = newStatus.leftOvers;
+				}
+			}
+		}
+	}
+
+
 	FVector spawnLoc = GetOwner()->GetActorLocation() + ( GetOwner()->GetActorForwardVector() * 200);
 	AActor* newLootBag = GetWorld()->SpawnActor<AActor>(lootBag, spawnLoc, GetOwner()->GetActorRotation());
 
 	UInventoryComponent* newInvComp = Cast<UInventoryComponent>(newLootBag->GetComponentByClass(UInventoryComponent::StaticClass()));
-	FAddItemStatus tryDrop = Cast<UInventoryComponent>(newInvComp)->addNewItem(itemToDrop);
+	FAddItemStatus tryDrop = Cast<UInventoryComponent>(newInvComp)->addNewItem(item);
 
 	if (tryDrop.addStatus && slot >= 0 && slot < inventoryArray.Num())
 	{
@@ -381,9 +478,33 @@ bool UInventoryComponent::isEmpty()
 {
 	for (int i = 0; i < inventoryArray.Num(); ++i)
 	{
-		if(inventoryArray[i].uniqueID != "Empty")
+		UItemAsset* curItem = inventoryArray[i].item;
+
+		if(curItem->uniqueID != "Empty")
 			return false;
 	}
 
 	return true;
+}
+
+int UInventoryComponent::getRows()
+{
+	return inventoryArray.Num() / 5;
+}
+
+void UInventoryComponent::loadInventory(TArray<FInvItem> newInv, int rowsToAdd)
+{
+	if (rowsToAdd > 0)
+	{
+		addNewRows(rowsToAdd);
+	}
+
+	if (newInv.Num() > 0)
+	{
+		for (int i = 0; i < newInv.Num(); ++i)
+		{
+			inventoryArray[i] = newInv[i];
+		}
+	}
+	OnInvChanged.Broadcast();
 }

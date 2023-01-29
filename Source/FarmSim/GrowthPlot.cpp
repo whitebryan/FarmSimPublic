@@ -28,9 +28,10 @@ void AGrowthPlot::Tick(float DeltaTime)
 }
 
 
-bool AGrowthPlot::plantCrop(FName cropName)
+bool AGrowthPlot::plantCrop(const FName cropName)
 {
 	FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(cropName, FString(""));
+	USeedItemAsset* plantItem = Cast<USeedItemAsset>(curPlantRow->item);
 
 	//Return if data table is faulty
 	if (curPlantRow == nullptr)
@@ -39,7 +40,7 @@ bool AGrowthPlot::plantCrop(FName cropName)
 	}
 
 	ABasePlant* newPlant;
-	TArray<FString> availSeasons = curPlantRow->availSeasons;
+	TArray<FString> availSeasons = plantItem->availSeasons;
 
 	//Check if the plant can be planted in the current season then plant it if it can
 	if (availSeasons.Contains(curSeason))
@@ -47,6 +48,7 @@ bool AGrowthPlot::plantCrop(FName cropName)
 		//Spawn given plant at base location
 		newPlant =  GetWorld()->SpawnActor<ABasePlant>(curPlantRow->itemBlueprint, GetActorLocation(), GetActorRotation());
 		newPlant->myPlot = this;
+		newPlant->InitalizePlant(true);
 
 		//Toggle interactability while a crop is growing here
 		if (myInteract)
@@ -76,7 +78,7 @@ void AGrowthPlot::changeInteractability()
 
 bool AGrowthPlot::isInUse()
 {
-	if (myCollider->GetCollisionEnabled() == ECollisionEnabled::NoCollision)
+	if (IsValid(myCollider) && myCollider->GetCollisionEnabled() == ECollisionEnabled::NoCollision)
 	{
 		return true;
 	}

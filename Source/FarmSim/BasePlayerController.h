@@ -82,6 +82,15 @@ protected:
 	UFUNCTION()
 	void FishingCastAction(const FInputActionValue& Value);
 
+	UFUNCTION()
+	void TogglePlacementModeAction(const FInputActionValue& Value);
+	UFUNCTION()
+	void FishingLogAction(const FInputActionValue& Value);
+	UFUNCTION()
+	void FarmingLogAction(const FInputActionValue& Value);
+	UFUNCTION()
+	void GatheringLogAction(const FInputActionValue& Value);
+
 public:
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<AFarmSimCharacter> PossessedCharacter = nullptr;

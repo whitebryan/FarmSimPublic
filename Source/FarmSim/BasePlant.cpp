@@ -5,7 +5,6 @@
 #include "InteractInterface.h"
 #include "GrowthPlot.h"
 #include "TimerManager.h"
-#include "InventoryItem.h"
 #include "InventoryComponent.h"
 #include "FarmSimCharacter.h"
 
@@ -13,24 +12,22 @@
 ABasePlant::ABasePlant()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
-
+	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickEnabled(false);
 }
 
 // Called when the game starts or when spawned
 void ABasePlant::BeginPlay()
 {
 	Super::BeginPlay();
-
-	//Only here for testing remove after
-	InitalizePlant(FDateTime::Now(), true);
+	timePerBreakPoint = ((float)plantToGrow->secondsToGrow / (1 + plantToGrow->timesToWater));
 }
 
 // Called every frame
 void ABasePlant::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (curStatus == GrowthStatus::Watered && wateredTimer >= (secondsToGrow / timesToWater))
+	if (curStatus == GrowthStatus::Watered && wateredTimer >= timePerBreakPoint)
 	{
 		wateredTimer = 0;
 		wateredPercent = 1;
@@ -38,40 +35,39 @@ void ABasePlant::Tick(float DeltaTime)
 	}
 	else if(curStatus == GrowthStatus::Watered)
 	{
+		totalSecondsGrowing += DeltaTime;
 		wateredTimer += DeltaTime;
-		wateredPercent = (wateredTimer/(secondsToGrow/timesToWater));
+		wateredPercent = wateredTimer/timePerBreakPoint;
 	}
 }
 
 //Setups a plant and changes its growth status if being reloaded
-void ABasePlant::InitalizePlant(FDateTime plantedTime, bool useCurTime)
+void ABasePlant::InitalizePlant(bool newPlant, AActor* newPlot, float Timer)
 {
-	if (useCurTime)
+	if (newPlant)
 	{
-		plantedDate = FDateTime::Now();
 		statusChange(GrowthStatus::NeedsWater);
 	}
 	else
 	{
+		myPlot = newPlot;
+		Cast<AGrowthPlot>(myPlot)->changeInteractability();
+
+		float BreakPoint = Timer / timePerBreakPoint;
+		totalSecondsGrowing = Timer;
+
 		toggleInteractibility();
-		plantedDate = plantedTime;
-		FDateTime curTime = FDateTime::Now();
-		FTimespan curSpan = curTime - plantedDate;
 
-		int totalTime = curSpan.GetSeconds() + (curSpan.GetHours() * 60 * 60) + (curSpan.GetMinutes() * 60) + (curSpan.GetDays() * 24 * 60 * 60);
-		int breakPointLength = secondsToGrow / timesToWater;
-
-		if (totalTime > secondsToGrow)
+		if (fmod(Timer, timePerBreakPoint) > 0)
 		{
-			//Instantly finish growing
-			breakPointChange(timesToWater);
-			statusChange(GrowthStatus::Grown);
-			return;
+			wateredTimer = fmod(Timer, timePerBreakPoint);
+			wateredPercent = wateredTimer/timePerBreakPoint;
+			statusChange(GrowthStatus::Watered);
+			curBreakPoint = BreakPoint;
 		}
-		else if(totalTime > breakPointLength)
+		else
 		{
-			breakPointChange(totalTime / breakPointLength);
-			statusChange(GrowthStatus::NeedsWater);
+			breakPointChange(BreakPoint);
 		}
 	}
 }
@@ -81,9 +77,10 @@ void ABasePlant::InitalizePlant(FDateTime plantedTime, bool useCurTime)
 void ABasePlant::breakPointChange(int newBreakPoint)
 {
 	curBreakPoint = newBreakPoint;
-	if (curBreakPoint > timesToWater)
+	if (curBreakPoint > plantToGrow->timesToWater)
 	{
 		statusChange(GrowthStatus::Grown);
+		Cast<UBoxComponent>(GetComponentByClass(UBoxComponent::StaticClass()))->ComponentTags.Add("Interaction");
 		toggleInteractibility();
 	}
 	else
@@ -91,6 +88,8 @@ void ABasePlant::breakPointChange(int newBreakPoint)
 		statusChange(GrowthStatus::NeedsWater);
 		toggleInteractibility();
 	}
+
+	totalSecondsGrowing = timePerBreakPoint * curBreakPoint;
 }
 
 
@@ -113,18 +112,14 @@ void ABasePlant::harvestPlant()
 	UInventoryComponent* playerInvComp;
 	playerInvComp = Cast<UInventoryComponent>(player->GetComponentByClass(UInventoryComponent::StaticClass()));
 
-	int harvestAmt = UKismetMathLibrary::RandomIntegerInRange(harvestMin, harvestMax);
+	int harvestAmt = UKismetMathLibrary::RandomIntegerInRange(plantToGrow->harvestMin, plantToGrow->harvestMax);
 
 	if (playerInvComp)
 	{
-		FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(plantID, FString(""));
+		//FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(plantToGrow->plantID, FString(""));
 		FInvItem newItem;
-		newItem.uniqueID = plantID;
-		newItem.name = plantName;
-		newItem.description = curPlantRow->description;
+		newItem.item = plantToGrow;
 		newItem.quantity = harvestAmt;
-		newItem.type = curPlantRow->type;
-		newItem.icon = curPlantRow->icon;
 
 		FAddItemStatus harvested = playerInvComp->addNewItem(newItem);
 		FString harvestMessage;
@@ -137,14 +132,15 @@ void ABasePlant::harvestPlant()
 		}
 		else if (harvested.leftOvers > 0)
 		{
-			harvestMessage = "Harvested " + FString::FromInt(harvestAmt - harvested.leftOvers) + " " + plantName.ToString() + "(s)";
+			harvestMessage = "Harvested " + FString::FromInt(harvestAmt - harvested.leftOvers) + " " + plantToGrow->name.ToString() + "(s)";
 			harvestMessage += " and dropped " + FString::FromInt(harvested.leftOvers);
 		}
 		else
 		{
-			harvestMessage = "Harvested " + FString::FromInt(harvestAmt) + " " + plantName.ToString() + "(s)"; 
+			harvestMessage = "Harvested " + FString::FromInt(harvestAmt) + " " + plantToGrow->name.ToString() + "(s)";
 		}
 
+		Cast<UPlayerSaveManagerComponent>(player->GetComponentByClass(UPlayerSaveManagerComponent::StaticClass()))->tryDiscoverItem(plantToGrow);
 		player->displayNotification(harvestMessage, 2);
 		Cast<AGrowthPlot>(myPlot)->changeInteractability();
 		Destroy();
@@ -166,13 +162,16 @@ void ABasePlant::modelChange()
 	switch (curStatus)
 	{
 		case GrowthStatus::NeedsWater:
-			plantMeshComp->SetStaticMesh(unwateredModel);
+			SetActorTickEnabled(true);
+			plantMeshComp->SetStaticMesh(plantToGrow->unwateredModel);
 			break;
 		case GrowthStatus::Watered:
-			plantMeshComp->SetStaticMesh(wateredGrowingModel);
+			SetActorTickEnabled(true);
+			plantMeshComp->SetStaticMesh(plantToGrow->wateredGrowingModel);
 			break;
 		case GrowthStatus::Grown:
-			plantMeshComp->SetStaticMesh(grownModel);
+			SetActorTickEnabled(false);
+			plantMeshComp->SetStaticMesh(plantToGrow->grownModel);
 			break;
 		default:
 			break;

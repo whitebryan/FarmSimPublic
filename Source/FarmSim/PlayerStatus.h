@@ -10,10 +10,10 @@ enum PlayerStatus
 {
 	NormalState UMETA(DisplayName = "Normal State"),
 	Planting UMETA(DisplayName = "Planting"),
-	InStorage UMETA(DisplayName = "In Storage"),
-	InInventory UMETA(DisplauName = "In Inventory"),
 	FishingCasting UMETA(DisplayName = "Fishing Casting"),
 	Fishing UMETA(DisplayName = "Fishing"),
+	Placement UMETA(DisplayName = "Placement Mode"),
+	InMenu UMETA(DisplayName = "In Menu"),
 };
 
 UENUM(Blueprintable, BlueprintType)

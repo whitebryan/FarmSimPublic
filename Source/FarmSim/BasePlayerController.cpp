@@ -115,10 +115,18 @@ void ABasePlayerController::JumpAction(const FInputActionValue& Value)
 
 void ABasePlayerController::SprintAction(const FInputActionValue& Value)
 {
+	if (PossessedCharacter)
+	{
+		PossessedCharacter->SprintAction(Value.GetMagnitude());
+	}
 }
 
 void ABasePlayerController::WalkAction(const FInputActionValue& Value)
 {
+	if (PossessedCharacter)
+	{
+		PossessedCharacter->WalkAction(Value.GetMagnitude());
+	}
 }
 
 void ABasePlayerController::InteractAction(const FInputActionValue& Value)
@@ -157,7 +165,7 @@ void ABasePlayerController::OpenInventoryAction(const FInputActionValue& Value)
 {
 	if (PossessedCharacter)
 	{
-		PossessedCharacter->OpenInventoryAction();
+		PossessedCharacter->toggleMenuUI(true, "Inventory", true);
 	}
 }
 
@@ -213,5 +221,37 @@ void ABasePlayerController::FishingCastAction(const FInputActionValue& Value)
 		{
 			PossessedCharacter->FishingCastAction(false);
 		}
+	}
+}
+
+void ABasePlayerController::TogglePlacementModeAction(const FInputActionValue& Value)
+{
+	if (PossessedCharacter)
+	{
+		PossessedCharacter->togglePlacementModeAction();
+	}
+}
+
+void ABasePlayerController::FishingLogAction(const FInputActionValue& Value)
+{
+	if (PossessedCharacter)
+	{
+		PossessedCharacter->toggleMenuUI(true, "Fishing", true);
+	}
+}
+
+void ABasePlayerController::GatheringLogAction(const FInputActionValue& Value)
+{
+	if (PossessedCharacter)
+	{
+		PossessedCharacter->toggleMenuUI(true, "Gathering", true);
+	}
+}
+
+void ABasePlayerController::FarmingLogAction(const FInputActionValue& Value)
+{
+	if (PossessedCharacter)
+	{
+		PossessedCharacter->toggleMenuUI(true, "Farming", true);
 	}
 }

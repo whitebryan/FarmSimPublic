@@ -9,6 +9,7 @@
 #include "InventoryItem.h"
 #include "Components/DecalComponent.h" 
 #include "Materials/MaterialInstanceDynamic.h"
+#include "PlayerSaveManagerComponent.h"
 #include "FishingMiniGame.generated.h"
 
 UENUM(Blueprintable, BlueprintType)
@@ -18,7 +19,8 @@ enum FishingDifficulty {
 	Hard UMETA(DisplayName = "Hard"),
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFishingDone, bool, Status, FInvItem, FishCaught);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFishingDone, bool, Status, const FInvItem&, FishCaught);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishingRecord, FFishRecordStruct, fishRecord);
 
 UCLASS()
 class FARMSIM_API AFishingMiniGame : public AActor, public IInteractInterface
@@ -34,7 +36,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (Tooltip = "If set this minigame will ONLY give this fish"))
-	FInvItem specificFish;
+	UFishItemAsset* specificFish;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (Tooltip = "Determines the speed and types of fish recieved from this minigame. Lower difficulties have a low chance to get a better quality fish but a higher difficulty can't go lower"))
 	TEnumAsByte<FishingDifficulty> miniGameQuality = FishingDifficulty::Easy;
@@ -42,13 +44,14 @@ protected:
 	TMap<FString, float> difficultySettings;
 	float oneTierUpChance = 0.15f;
 	float twoTierUpChance = 0.05f;
-	float speedModifier = 0.25f;
+	UPROPERTY(EditAnywhere)
+	float speedModifier = 1.2f;
 	int quantityModifier = 0;
 
 	UPROPERTY(BlueprintReadWrite)
-	UDecalComponent* movingDecal;
+	UStaticMeshComponent* movingDecal;
 	UPROPERTY(BlueprintReadWrite)
-	UDecalComponent* ringDecal;
+	UStaticMeshComponent* ringDecal;
 
 	UPROPERTY(BlueprintReadWrite)
 	UMaterialInstanceDynamic* decalInstance;
@@ -76,6 +79,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Delegates")
 	FOnFishingDone fishingFinished;
+	UPROPERTY(BlueprintAssignable, Category = "Delegates")
+	FOnFishingRecord newFishingRecord;
+
 
 	UFUNCTION(BlueprintCallable)
 	void setDifficulty(FishingDifficulty diff);

@@ -7,6 +7,7 @@
 #include "Engine/DataTable.h"
 #include "ToolItem.h"
 #include "PlayerStatus.h"
+#include "InventoryItem.h"
 #include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractInterface.h"
 #include "Components/BoxComponent.h"
 #include "Harvestable.generated.h"
@@ -26,56 +27,39 @@ protected:
 
 	//Item properties
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FName itemID = "default";
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FName itemName = "default";
+	UHarvestableItemAsset* itemToHarvest;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UDataTable* harvestablesTable;
+	FName toolType;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int harvestAmount = 1;
-
-
-	//Tool Requirements
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	bool requiresTool = false;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FName toolType = "default";
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TEnumAsByte<PlayerToolStatus> requiredToolStatus = PlayerToolStatus::PickaxeOut;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TEnumAsByte<ToolTier> toolLevel = ToolTier::Bronze;
-
-	//Respawn variables
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	bool respawnAble = true;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int respawnTime = 5;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UBoxComponent* boxCollider;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* meshComponent;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UStaticMesh* harvestedModel;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UStaticMesh* harvestableModel;
+	float harvestedMeshChangeDelay = 1.5f;
 
-	FTimerHandle respawnTimer;
+	UPROPERTY(BlueprintReadOnly)
+	float respawnTimer = 0;
+	FTimerHandle meshChangeTimer;
 
 	//Used to get display name from enums for return messages
-	FString toolTierToString();
-	FString toolTypeToString();
+	virtual FString toolTierToString();
+	virtual FString toolTypeToString();
+	void delayedMeshChange();
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
-	void tryHarvest();
+	virtual void tryHarvest();
+	virtual void changeStatus(bool harvestable);
 
-	UFUNCTION()
-	void respawn();
+	UFUNCTION(BlueprintImplementableEvent)
+	void movePlayerIntoPosition();
 
-	void changeStatus(bool harvestable);
+	UFUNCTION(BlueprintCallable)
+	void initHarvestable(float newTime);
+
+	float getCurTimeTillRespawn();
 };
