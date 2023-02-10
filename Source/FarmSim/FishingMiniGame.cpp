@@ -4,7 +4,8 @@
 #include "FishingMiniGame.h"
 #include "Kismet/KismetSystemLibrary.h" 
 #include "Kismet/KismetMathLibrary.h"
-#include "FarmSimCharacter.h"
+#include "Kismet/KismetStringLibrary.h" 
+#include "Player/FarmSimCharacter.h"
 
 // Sets default values
 AFishingMiniGame::AFishingMiniGame()
@@ -24,8 +25,6 @@ AFishingMiniGame::AFishingMiniGame()
 void AFishingMiniGame::BeginPlay()
 {
 	Super::BeginPlay();
-
-	getDataTables();
 
 	oneTierUpChance = difficultySettings["oneUp"];
 	twoTierUpChance = difficultySettings["twoUp"];
@@ -75,7 +74,12 @@ void AFishingMiniGame::Tick(float DeltaTime)
 //When interacted with check if the scale is in the success range and then give a fish
 void AFishingMiniGame::Interact_Implementation()
 {
-	getDataTables();
+	UDataTable* curDataTable = getDataTable();
+
+	if (curDataTable == nullptr)
+	{
+		return;
+	}
 
 	active = false;
 
@@ -104,8 +108,7 @@ void AFishingMiniGame::Interact_Implementation()
 		}
 		else
 		{
-			UDataTable* curTable;
-
+			FString fishQuality = "Normal";
 			float tableChance = UKismetMathLibrary::RandomFloatInRange(0, 1);
 
 			switch (miniGameQuality)
@@ -113,40 +116,98 @@ void AFishingMiniGame::Interact_Implementation()
 			case FishingDifficulty::Easy:
 				if (tableChance >= (1 - oneTierUpChance))
 				{
-					curTable = dataTables["Hard"];
+					fishQuality = "Legendary";
 				}
 				else if(tableChance >= (1 - twoTierUpChance))
 				{
-					curTable = dataTables["Normal"];
+					fishQuality = "Epic";
 				}
 				else
 				{
-					curTable = dataTables["Easy"];
+					fishQuality = "Normal";
 				}
 				break;
 			case FishingDifficulty::Normal:
 				if (tableChance >= (1 - oneTierUpChance))
 				{
-					curTable = dataTables["Hard"];
+					fishQuality = "Legendary";
 				}
 				else
 				{
-					curTable = dataTables["Normal"];
+					fishQuality = "Epic";
 				}
 				break;
 			case FishingDifficulty::Hard:
-				curTable = dataTables["Hard"];
+				fishQuality = "Legendary";
 				break;
 			default:
-				curTable = dataTables["Easy"];
+				fishQuality = "Normal";
 				break;
 			}
 
 
+			FSeasonWeatherReturnStruct curWorldStatus = getWeatherTimeStatus();
+			TArray<FName> rowNames = curDataTable->GetRowNames();
+			TArray<FName> rowNamesCopy = rowNames;
 
-			TArray<FName> rowNames = curTable->GetRowNames();
+			for (FName row : rowNamesCopy)
+			{
+				//Probably will have to revist this if I add too many fish could get real slow
+				//Split the ID of the row
+				//[0] = Weather
+				//[1] = Time Start
+				//[2] = Time End
+				//[3] = Season
+				//[4] = Quality
+				//[5] = Location
+				//[6] = ID
+
+				TArray<FString> splitID;
+				row.ToString().ParseIntoArray(splitID, TEXT("."));
+
+				//Go through the various parts of the id and check to make sure the fish is avaible in this current status else remove it
+				if (splitID[0] != "Any" && splitID[0] != curWorldStatus.weather)
+				{
+					rowNames.Remove(row);
+					continue;
+				}
+				else if(splitID[1] != "99" && curWorldStatus.hour < UKismetStringLibrary::Conv_StringToInt(splitID[1]))
+				{
+					rowNames.Remove(row);
+					continue;
+				}
+				else if(splitID[2] != "99" && curWorldStatus.hour > UKismetStringLibrary::Conv_StringToInt(splitID[2]))
+				{
+					rowNames.Remove(row);
+					continue;
+				}
+				else if(splitID[3] != "Any" && splitID[3] != curWorldStatus.season)
+				{
+					rowNames.Remove(row);
+					continue;
+				}
+				else if(splitID[4] != fishQuality)
+				{
+					rowNames.Remove(row);
+					continue;
+				}
+				else if(splitID[5] != "Any" && splitID[5] != curWorldStatus.curLocation)
+				{
+					rowNames.Remove(row);
+					continue;
+				}
+			}
+
+			if (rowNames.Num() <= 0)
+			{
+				decalInstance->SetVectorParameterValue("Color", failedColor);
+				GetWorldTimerManager().SetTimer(destroyTimer, this, &AFishingMiniGame::finished, 0.3f, false);
+				fishingFinished.Broadcast(false, FInvItem());
+				return;
+			}
+
 			FName fishID = rowNames[UKismetMathLibrary::RandomIntegerInRange(0, (rowNames.Num() - 1))];
-			FInvTableItem* fishToGive = curTable->FindRow<FInvTableItem>(fishID, FString(""));
+			FInvTableItem* fishToGive = curDataTable->FindRow<FInvTableItem>(fishID, FString(""));
 
 			FInvItem newInvItem;
 			newInvItem.item = Cast<UItemAsset>(fishToGive->item);

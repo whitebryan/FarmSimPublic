@@ -6,7 +6,7 @@
 #include "Runtime/Engine/Classes/Engine/DataTable.h"
 #include "Engine/Texture2D.h"
 #include "LocationStatus.h"
-#include "InventoryItem.h"
+#include "InventoryAndCrafting/InventoryItem.h"
 #include "PlaceableItemStruct.generated.h"
 
 USTRUCT(BlueprintType, Blueprintable)

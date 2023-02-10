@@ -6,10 +6,23 @@
 #include "GameFramework/SaveGame.h"
 #include "InputCoreTypes.h"
 #include "PlayerMappableInputConfig.h"
-#include "InventoryItem.h"
-#include "BasePlant.h"
+#include "InventoryAndCrafting/InventoryItem.h"
+#include "Farming/BasePlant.h"
 #include "DLSSLibrary.h"
 #include "PlayerSaveGame.generated.h"
+
+USTRUCT(Blueprintable, BlueprintType)
+struct FClothesSaveStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UModularClothingAsset* clothesAsset;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FLinearColor pieceColor;
+};
 
 USTRUCT(Blueprintable, BlueprintType)
 struct FChestSaveStruct
@@ -102,6 +115,8 @@ public:
 	float season = 3.5;
 	UPROPERTY(BlueprintReadOnly)
 	int daysIntoSeason = 0;
+	UPROPERTY(BlueprintReadOnly)
+	int dayOfTheWeek = 0;
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<URecipeAsset*> knownRecipes;
@@ -120,4 +135,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<UItemAsset*> discoveredItems;
+
+	UPROPERTY(BlueprintReadOnly)
+	TMap<TEnumAsByte<ClothesCategory>, FClothesSaveStruct> playerClothes;
+
+	UPROPERTY(BlueprintReadOnly)
+	FLinearColor skinColor;
 };

@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "FarmSimGameMode.h"
-#include "FarmSimCharacter.h"
+#include "Player/FarmSimCharacter.h"
 #include "UObject/ConstructorHelpers.h"
 
 AFarmSimGameMode::AFarmSimGameMode()

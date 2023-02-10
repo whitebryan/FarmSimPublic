@@ -4,11 +4,11 @@
 #include "PlayerSaveManagerComponent.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
-#include "Harvestable.h"
-#include "GrowthPlot.h"
-#include "DestroyablePiece.h"
-#include "ConstructableBuilding.h"
-#include "FarmSimCharacter.h"
+#include "InventoryAndCrafting/Harvestable.h"
+#include "Farming/GrowthPlot.h"
+#include "InventoryAndCrafting/DestroyablePiece.h"
+#include "InventoryAndCrafting/ConstructableBuilding.h"
+#include "Player/FarmSimCharacter.h"
 
 
 // Sets default values for this component's properties
@@ -40,6 +40,8 @@ void UPlayerSaveManagerComponent::BeginPlay()
 	FString slotN = "Slot1";
 	autoSaveDelegate.BindUFunction(this, FName("saveGame"), slotN);
 	GetWorld()->GetTimerManager().SetTimer(autoSaveHandle, autoSaveDelegate, (autoSaveTime * 60), true);
+
+	saveFinished.BindUObject(this, &UPlayerSaveManagerComponent::passDelegateToBP);
 	// ...
 }
 
@@ -76,9 +78,13 @@ void UPlayerSaveManagerComponent::saveGame(const FString& slot)
 		playerSaveGame->constructedBuildings = constructedBuildings;
 		playerSaveGame->fishStats = fishStats;
 		playerSaveGame->discoveredItems = discoveredItems;
+		playerSaveGame->playerClothes = playerClothes;
+		playerSaveGame->skinColor = skinColor;
 		UGameplayStatics::AsyncSaveGameToSlot(playerSaveGame, slot, 0, saveFinished);
 	}
 }
+
+
 
 //Calls all individual load functions to load from file
 void UPlayerSaveManagerComponent::LoadGame(const FString& slot)
@@ -101,6 +107,16 @@ void UPlayerSaveManagerComponent::LoadGame(const FString& slot)
 		brokenPieces = playerSaveGame->brokenPieces;
 		fishStats = playerSaveGame->fishStats;
 		discoveredItems = playerSaveGame->discoveredItems;
+		playerClothes = playerSaveGame->playerClothes;
+		skinColor = playerSaveGame->skinColor;
+
+		TArray<TEnumAsByte<ClothesCategory>> keys;
+		playerClothes.GetKeys(keys);
+		for (TEnumAsByte<ClothesCategory> category : keys)
+		{
+			curPlayer->changeClothingPiece(playerClothes[category].clothesAsset, playerClothes[category].pieceColor);
+		}
+
 		curPlayer->currentTools = playerSaveGame->currentTools;
 
 		//Rebuilding buildings
@@ -155,12 +171,13 @@ void UPlayerSaveManagerComponent::changeAutoSaveTimer(int newTime)
 	}
 }
 
-void UPlayerSaveManagerComponent::saveSeasonTimeWeather(const FName curWeather, float time, float season, int daysIntoSeason)
+void UPlayerSaveManagerComponent::saveSeasonTimeWeather(const FName curWeather, float time, float season, int daysIntoSeason, int dayOfTheWeek)
 {
 	playerSaveGame->lastWeather = curWeather;
 	playerSaveGame->timeOfDay = time;
 	playerSaveGame->season = season;
 	playerSaveGame->daysIntoSeason = daysIntoSeason;
+	playerSaveGame->dayOfTheWeek = dayOfTheWeek;
 }
 
 
@@ -499,4 +516,18 @@ FFishRecordStruct UPlayerSaveManagerComponent::fishCaught(FName uniqueID, float 
 			return newFishRecord;
 		}
 	}
+}
+
+void UPlayerSaveManagerComponent::passDelegateToBP(const FString& saveString, const int32 saveInt, bool saveDone)
+{
+	bpSaveFinishedDelegate.Broadcast();
+}
+
+void UPlayerSaveManagerComponent::addClothingPiece(UModularClothingAsset* pieceToAdd, FLinearColor color)
+{
+	FClothesSaveStruct newClothesStruct;
+	newClothesStruct.clothesAsset = pieceToAdd;
+	newClothesStruct.pieceColor = color;
+
+	playerClothes.Add(pieceToAdd->category, newClothesStruct);
 }

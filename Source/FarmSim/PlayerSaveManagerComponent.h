@@ -33,8 +33,9 @@ public:
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLoadFinished, bool, status);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSaveNeeded)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNewItemDiscovered)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSaveNeeded);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSaveFinished);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNewItemDiscovered);
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FARMSIM_API UPlayerSaveManagerComponent : public UActorComponent
 {
@@ -105,7 +106,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void changeAutoSaveTimer(int newTime);
 	UFUNCTION(BlueprintCallable)
-	void saveSeasonTimeWeather(const FName curWeather, float time, float season, int daysIntoSeason);
+	void saveSeasonTimeWeather(const FName curWeather, float time, float season, int daysIntoSeason, int dayOfTheWeek);
 
 	FAsyncSaveGameToSlotDelegate saveFinished;
 	UPROPERTY(BlueprintAssignable)
@@ -114,6 +115,8 @@ public:
 	FOnSaveNeeded SaveRequested;
 	UPROPERTY(BlueprintAssignable)
 	FOnNewItemDiscovered newItemDiscovered;
+	UPROPERTY(BlueprintAssignable)
+	FOnSaveFinished bpSaveFinishedDelegate;
 
 	UPROPERTY(BlueprintReadWrite)
 	int autoSaveTime = 5;
@@ -142,4 +145,16 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void tryDiscoverItem(UItemAsset* itemToDiscover);
+
+	void passDelegateToBP(const FString& saveString, const int32 saveInt, bool saveDone);
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TMap<TEnumAsByte<ClothesCategory>, FClothesSaveStruct> playerClothes;
+
+	UPROPERTY(BlueprintReadOnly)
+	FLinearColor skinColor;
+
+	UFUNCTION(BlueprintCallable)
+	void addClothingPiece(UModularClothingAsset* pieceToAdd, FLinearColor color);
 };

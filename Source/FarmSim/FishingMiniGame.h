@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Engine/DataTable.h"
 #include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractInterface.h"
-#include "InventoryItem.h"
+#include "InventoryAndCrafting/InventoryItem.h"
 #include "Components/DecalComponent.h" 
 #include "Materials/MaterialInstanceDynamic.h"
 #include "PlayerSaveManagerComponent.h"
@@ -17,6 +17,23 @@ enum FishingDifficulty {
 	Easy UMETA(DisplayName = "Easy"),
 	Normal UMETA(DisplayName = "Normal"),
 	Hard UMETA(DisplayName = "Hard"),
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+
+struct FSeasonWeatherReturnStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite)
+	FString weather;
+	UPROPERTY(BlueprintReadWrite)
+	FString season;
+	UPROPERTY(BlueprintReadWrite)
+	int hour;
+	UPROPERTY(BlueprintReadWrite)
+	FString curLocation;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFishingDone, bool, Status, const FInvItem&, FishCaught);
@@ -60,9 +77,6 @@ protected:
 	UPROPERTY(EditAnywhere)
 	FLinearColor successColor;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (Tooltip = "Data tables seperated by difficulty"))
-	TMap<FString, UDataTable*> dataTables;
-
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (Tooltip = "Time in seconds till it starts moving"))
 	float startDelay = 0.5f;
 	FTimerHandle startDelayTimer;
@@ -90,5 +104,7 @@ public:
 	void Interact(); virtual void Interact_Implementation() override;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void getDataTables();
+	UDataTable* getDataTable();
+	UFUNCTION(BlueprintImplementableEvent)
+	FSeasonWeatherReturnStruct getWeatherTimeStatus();
 };
