@@ -166,6 +166,11 @@ void UInventoryComponent::moveItem(int from, int to)
 
 void UInventoryComponent::removeItem(int slot)
 {
+	if (slot < 0 || slot >= inventoryArray.Num())
+	{
+		return;
+	}
+
 	FInvItem newEmptyItem = FInvItem();
 	newEmptyItem.quantity = 0;
 	newEmptyItem.item = emptyItem;

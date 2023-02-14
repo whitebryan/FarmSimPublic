@@ -116,7 +116,6 @@ void ABasePlant::harvestPlant()
 
 	if (playerInvComp)
 	{
-		//FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(plantToGrow->plantID, FString(""));
 		FInvItem newItem;
 		newItem.item = plantToGrow;
 		newItem.quantity = harvestAmt;

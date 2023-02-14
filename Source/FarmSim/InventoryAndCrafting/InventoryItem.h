@@ -192,6 +192,8 @@ class FARMSIM_API UFishItemAsset : public UItemAsset
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "The model of the fish"))
+	UStaticMesh* fishModel;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "The location the fish is catchable."))
 	TEnumAsByte<LocationStatus> catchableArea = LocationStatus::Anywhere;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "The seasons the fish is catchable."))
@@ -202,9 +204,9 @@ public:
 	int minLenght = 10;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "Maximum length the fish can drop at in cm"))
 	int maxLength = 25;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "Tine the fish starts appearing"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "Time the fish starts appearing"))
 	int startTime = 99;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "Tine the fish stops appearing"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "Time the fish stops appearing"))
 	int doneTime = 99;
 
 };

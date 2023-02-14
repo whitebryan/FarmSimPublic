@@ -12,14 +12,17 @@
 #include "../PlayerSaveManagerComponent.h"
 #include "Containers/Queue.h"
 #include "Templates/Tuple.h"
+#include "GameplayTagAssetInterface.h" 
+#include "GameplayTagContainer.h"
 #include "FarmSimCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerStatusChange, PlayerStatus, newStatus);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerToolChange, PlayerToolStatus, newStatus);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishingRecordChange, FFishRecordStruct, newRecord);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishCaught, UFishItemAsset*, fishCaught);
 
 UCLASS(config=Game)
-class AFarmSimCharacter : public ACharacter
+class AFarmSimCharacter : public ACharacter, public IGameplayTagAssetInterface
 {
 	GENERATED_BODY()
 
@@ -32,6 +35,11 @@ class AFarmSimCharacter : public ACharacter
 	class UCameraComponent* FollowCamera;
 public:
 	AFarmSimCharacter();
+
+	UFUNCTION(BlueprintCallable)
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer &TagContainer) const override;//; virtual void GetOwnedGameplayTags_Implementation(FGameplayTagContainer& TagContainer) const override;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FGameplayTagContainer playerTags;
 
 	virtual void Tick(float DeltaTime) override;
 
@@ -63,6 +71,8 @@ public:
 	FOnPlayerToolChange PlayerToolChanged;
 	UPROPERTY(BlueprintAssignable, Category = "Delegates")
 	FOnFishingRecordChange newFishingRecordChange;
+	UPROPERTY(BlueprintAssignable, Category = "Delegates")
+	FOnFishCaught caughtFish;
 
 
 

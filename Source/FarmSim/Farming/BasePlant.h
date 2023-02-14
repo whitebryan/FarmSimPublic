@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/Actor.h"
-#include "Engine/DataTable.h"
 #include "../InventoryAndCrafting/InventoryItem.h"
 #include "Math/Color.h"
 #include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractInterface.h"
@@ -49,10 +48,6 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly)
 	TEnumAsByte<GrowthStatus> curStatus = GrowthStatus::SettingUp;
-
-	//UPROPERTY(EditAnywhere)
-	//UDataTable* plantDataTable;
-
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

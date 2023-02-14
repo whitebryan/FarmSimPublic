@@ -216,6 +216,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 			myParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			placementPreview = GetWorld()->SpawnActor<AActor>(growthPlotPreview, placementPoint, UKismetMathLibrary::MakeRotator(0, 0, 0), myParams);
 			placementPreview->SetHidden(false);
+			objectToTrack = placementPreview;
 		}
 		else if (!IsValid(placementPreview) && toolStatus == PlayerToolStatus::WateringCanOut)
 		{
@@ -322,6 +323,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 
 			placementPreview->SetActorRotation(newRot);
 			placementPreview->SetActorLocation(placementPoint);
+			objectToTrack = placementPreview;
 		}
 		else if (IsValid(lastHighlighted))
 		{
@@ -329,6 +331,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 			{
 				IItemHighlightInterface::Execute_ChangeHighlight(lastHighlighted, false);
 				lastHighlighted = nullptr;
+				objectToTrack = nullptr;
 			}
 		}
 	}
@@ -353,6 +356,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 					float qualityChance = UKismetMathLibrary::RandomFloatInRange(0, 1);
 
 					curFishingMiniGame = GetWorld()->SpawnActor<AActor>(fishingMiniGameBlueprint, curFishingIndicator->GetActorLocation(), newRot);
+					objectToTrack = curFishingMiniGame;
 
 					if (qualityChance >= 0.95)
 					{
@@ -370,6 +374,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 			else
 			{
 				toolUsed = false;
+				objectToTrack = nullptr;
 				setPlayerStatus(PlayerStatus::NormalState);
 			}
 
@@ -723,6 +728,7 @@ void AFarmSimCharacter::FishingCastAction_Implementation(bool pressed)
 		FHitResult findGround = placementLineTraceDown(false, false);
 
 		curFishingIndicator = GetWorld()->SpawnActor<AActor>(fishingIndicatorBlueprint, findGround.ImpactPoint, GetActorRotation(), myParams);
+		objectToTrack = curFishingIndicator;
 	}
 	else if(curPlayerStatus == PlayerStatus::FishingCasting)
 	{
@@ -743,6 +749,7 @@ void AFarmSimCharacter::FishingCastAction_Implementation(bool pressed)
 				float qualityChance = UKismetMathLibrary::RandomFloatInRange(0, 1);
 
 				curFishingMiniGame = GetWorld()->SpawnActor<AActor>(fishingMiniGameBlueprint, curFishingIndicator->GetActorLocation(), newRot);
+				objectToTrack = curFishingMiniGame;
 
 				if (qualityChance >= 0.95)
 				{
@@ -760,6 +767,7 @@ void AFarmSimCharacter::FishingCastAction_Implementation(bool pressed)
 		else
 		{
 			toolUsed = false;
+			objectToTrack = nullptr;
 			setPlayerStatus(PlayerStatus::NormalState);
 		}
 
@@ -960,6 +968,7 @@ void AFarmSimCharacter::changeEquippedTool_Implementation(PlayerToolStatus newTo
 	{
 		placementPreview->Destroy();
 		placementPreview = nullptr;
+		objectToTrack = nullptr;
 	}
 }
 
@@ -1105,6 +1114,7 @@ void AFarmSimCharacter::fishingMiniGameDelegateFunc(bool Status, const FInvItem&
 	}
 	else
 	{
+		caughtFish.Broadcast(Cast<UFishItemAsset>(FishCaught.item));
 		FString notif = "You caught " + FString::FromInt(FishCaught.quantity) + " " + FishCaught.item->name.ToString() + ".";
 		displayNotification(notif);
 
@@ -1112,6 +1122,7 @@ void AFarmSimCharacter::fishingMiniGameDelegateFunc(bool Status, const FInvItem&
 	}
 
 	toolUsed = false;
+	objectToTrack = nullptr;
 	setPlayerStatus(PlayerStatus::NormalState);
 }
 
@@ -1283,4 +1294,9 @@ void AFarmSimCharacter::placePlaceable(bool place)
 			}
 		}
 	}
+}
+
+void AFarmSimCharacter::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
+{
+	TagContainer = playerTags;
 }

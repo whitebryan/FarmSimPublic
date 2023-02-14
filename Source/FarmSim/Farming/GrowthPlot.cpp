@@ -28,9 +28,9 @@ void AGrowthPlot::Tick(float DeltaTime)
 }
 
 
-bool AGrowthPlot::plantCrop(const FName cropName)
+bool AGrowthPlot::plantCrop(const FName cropID)
 {
-	FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(cropName, FString(""));
+	FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(cropID, FString(""));
 	USeedItemAsset* plantItem = Cast<USeedItemAsset>(curPlantRow->item);
 
 	//Return if data table is faulty

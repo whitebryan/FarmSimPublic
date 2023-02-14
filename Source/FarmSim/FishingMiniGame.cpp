@@ -176,7 +176,7 @@ void AFishingMiniGame::Interact_Implementation()
 					rowNames.Remove(row);
 					continue;
 				}
-				else if(splitID[2] != "99" && curWorldStatus.hour > UKismetStringLibrary::Conv_StringToInt(splitID[2]))
+				else if(splitID[2] != "99" && curWorldStatus.hour >= UKismetStringLibrary::Conv_StringToInt(splitID[2]))
 				{
 					rowNames.Remove(row);
 					continue;
