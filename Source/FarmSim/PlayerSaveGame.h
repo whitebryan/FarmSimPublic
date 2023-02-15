@@ -122,7 +122,7 @@ public:
 	TArray<URecipeAsset*> knownRecipes;
 
 	UPROPERTY(BlueprintReadOnly)
-	TMap<FName, UToolItemAsset*> currentTools;
+	TMap<FGameplayTag, UToolItemAsset*> currentTools;
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FName> constructedBuildings;

@@ -5,9 +5,8 @@
 #include "CoreMinimal.h"
 #include "Runtime/Engine/Classes/Engine/DataTable.h"
 #include "Engine/Texture2D.h"
-#include "../LocationStatus.h"
 #include "../ToolItem.h"
-#include "../PlayerStatus.h"
+#include "GameplayTagContainer.h"
 #include "InventoryItem.generated.h"
 
 
@@ -34,7 +33,7 @@ public:
 	UItemAsset* item;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TArray<TEnumAsByte<LocationStatus>> placeableBiome;
+	FGameplayTagContainer placeableBiome;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<class AActor> itemBlueprint;
@@ -162,7 +161,7 @@ public:
 	bool requiresTool = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TEnumAsByte<PlayerToolStatus> requiredToolStatus = PlayerToolStatus::PickaxeOut;
+	FGameplayTag requiredToolStatus = FGameplayTag::EmptyTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TEnumAsByte<ToolTier> toolLevel = ToolTier::Bronze;
@@ -180,7 +179,7 @@ public:
 	int respawnTime = 5;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "The locations this can be harvested."))
-	TArray<TEnumAsByte<LocationStatus>> harvestableAreas;
+	FGameplayTagContainer harvestableAreas;
 
 };
 //
@@ -195,7 +194,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "The model of the fish"))
 	UStaticMesh* fishModel;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "The location the fish is catchable."))
-	TEnumAsByte<LocationStatus> catchableArea = LocationStatus::Anywhere;
+	FGameplayTag catchableArea;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "The seasons the fish is catchable."))
 	FName seasons = "Summer&Winter";
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "The weather the fish appears in."));
@@ -218,6 +217,9 @@ class FARMSIM_API UToolItemAsset : public UItemAsset
 	GENERATED_BODY()
 
 public:
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FGameplayTag toolStatus = FGameplayTag::EmptyTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UStaticMesh* model;

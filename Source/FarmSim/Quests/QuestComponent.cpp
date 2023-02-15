@@ -54,8 +54,6 @@ FQuestStepStruct UQuestTrackerComponent::checkRemainingProgress(const FString qu
 		//Grab the player tag interface
 		FGameplayTagContainer playerTags;
 		IGameplayTagAssetInterface* playerTagInterface = Cast<IGameplayTagAssetInterface>(player);
-
-
 		if (playerTagInterface != nullptr)
 		{
 			playerTagInterface->GetOwnedGameplayTags(playerTags);
@@ -67,7 +65,8 @@ FQuestStepStruct UQuestTrackerComponent::checkRemainingProgress(const FString qu
 				for (int i = 0; i < result.requiredTags.Num(); ++i)
 				{
 					FGameplayTag curTag = result.requiredTags.GetByIndex(i);
-					if (playerTagInterface->HasMatchingGameplayTag(curTag))
+					
+					if (curTag.MatchesAnyExact(playerTags))
 					{
 						tagsToRemove.AddTag(curTag);
 					}
@@ -86,7 +85,7 @@ FQuestStepStruct UQuestTrackerComponent::checkRemainingProgress(const FString qu
 				for (int i = 0; i < result.restrictedTags.Num(); ++i)
 				{
 					FGameplayTag curTag = result.restrictedTags.GetByIndex(i);
-					if (!playerTagInterface->HasMatchingGameplayTag(curTag))
+					if (!curTag.MatchesAnyExact(playerTags))
 					{
 						tagsToRemove.AddTag(curTag);
 					}

@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "../ToolItem.h"
-#include "../PlayerStatus.h"
 #include "InventoryItem.h"
 #include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractInterface.h"
 #include "Components/BoxComponent.h"
@@ -25,11 +24,12 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	FName toolType;
+
+
 	//Item properties
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UHarvestableItemAsset* itemToHarvest;
-
-	FName toolType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UBoxComponent* boxCollider;

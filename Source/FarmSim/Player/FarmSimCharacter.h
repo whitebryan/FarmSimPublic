@@ -5,8 +5,6 @@
 #include "CoreMinimal.h"
 #include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractComponent.h"
 #include "GameFramework/Character.h"
-#include "../PlayerStatus.h"
-#include "../LocationStatus.h"
 #include "../ToolItem.h"
 #include "../InventoryAndCrafting/InventoryComponent.h"
 #include "../PlayerSaveManagerComponent.h"
@@ -14,15 +12,16 @@
 #include "Templates/Tuple.h"
 #include "GameplayTagAssetInterface.h" 
 #include "GameplayTagContainer.h"
+#include "PlayerUIInterface.h"
 #include "FarmSimCharacter.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerStatusChange, PlayerStatus, newStatus);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerToolChange, PlayerToolStatus, newStatus);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerStatusChange, FGameplayTag, newStatus);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerToolChange, FGameplayTag, newStatus);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishingRecordChange, FFishRecordStruct, newRecord);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFishCaught, UFishItemAsset*, fishCaught);
 
 UCLASS(config=Game)
-class AFarmSimCharacter : public ACharacter, public IGameplayTagAssetInterface
+class AFarmSimCharacter : public ACharacter, public IGameplayTagAssetInterface, public IPlayerUIInterface
 {
 	GENERATED_BODY()
 
@@ -37,9 +36,15 @@ public:
 	AFarmSimCharacter();
 
 	UFUNCTION(BlueprintCallable)
+	void setPlayerStatus(FGameplayTag newStatus);
+	UFUNCTION(BlueprintCallable)
 	virtual void GetOwnedGameplayTags(FGameplayTagContainer &TagContainer) const override;//; virtual void GetOwnedGameplayTags_Implementation(FGameplayTagContainer& TagContainer) const override;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FGameplayTagContainer playerTags;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FGameplayTagContainer movementAllowableTags;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FGameplayTagContainer cameraRestrictingTags;
 
 	virtual void Tick(float DeltaTime) override;
 
@@ -116,7 +121,7 @@ public:
 	void EscMenuAction();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void changeEquippedTool(PlayerToolStatus newTool);
+	void changeEquippedTool(FGameplayTag newTool);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void togglePlacementModeAction();
@@ -126,25 +131,19 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void setSelectedItem(bool showUI = true);
 
-	UFUNCTION(BlueprintCallable)
-	void setPlayerStatus(PlayerStatus newStatus);
-
 
 	//Tool stuff
 	UFUNCTION(BlueprintCallable)
-	void changeTool(const FName toolType, UToolItemAsset* newTool);
+	void changeTool(UToolItemAsset* newTool);
 
 	UFUNCTION(BlueprintCallable)
-	UToolItemAsset* grabTool(const FName toolType);
+	UToolItemAsset* grabTool(FGameplayTag toolTag);
 	//
 
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
-	PlayerToolStatus getEquippeddTool() { return toolStatus; };
-	PlayerStatus getPlayerStatus() { return curPlayerStatus; };
 
 	//UI Functions
 	UFUNCTION(BlueprintCallable)
@@ -153,6 +152,7 @@ public:
 	void newNotification(const FString& message, int showLength = 2);
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	void toggleMenuUI(bool bStatus, const FName menuToOpenTo = "None", bool bShouldToggle = false);
+	void setPlayerUI(bool bStatus, const FName menuToOpenTo = "None", bool bShouldToggle = false); virtual void setPlayerUI_Implementation(bool bStatus, const FName menuToOpenTo, bool bShouldToggle) override;
 
 
 	//Tool animation Variables
@@ -163,13 +163,25 @@ public:
 	UStaticMeshComponent* toolMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TMap<FName, UToolItemAsset*> currentTools;
+	TMap<FGameplayTag, UToolItemAsset*> currentTools;
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void changeClothingPiece(UModularClothingAsset* newPiece, FLinearColor pieceColor);
 
+
+
+	FGameplayTag locationTag;
+	FGameplayTag playerStatusTag;
+	FGameplayTag toolStatusTag;
+
+	UFUNCTION(BlueprintCallable)
+	void changeTag(FGameplayTag newTag);
+	UFUNCTION(BlueprintCallable)
+	FGameplayTag findTagOfType(FGameplayTag parentTag);
+
 protected:
 	virtual void BeginPlay() override;
+
 
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -186,21 +198,11 @@ protected:
 
 	//Player Statuses
 	UPROPERTY(BlueprintReadOnly)
-	TEnumAsByte<PlayerStatus> curPlayerStatus = PlayerStatus::NormalState;
-	UPROPERTY(BlueprintReadOnly)
-	TEnumAsByte<PlayerStatus> prevPlayerStatus = PlayerStatus::NormalState;
+	FGameplayTag prevPlayerStatus = FGameplayTag::EmptyTag;
 
 	UPROPERTY(BlueprintReadOnly)
-	TEnumAsByte<PlayerToolStatus> toolStatus = PlayerToolStatus::NoToolOut;
-	UPROPERTY(BlueprintReadOnly)
-	TEnumAsByte<PlayerToolStatus> prevToolStatus = PlayerToolStatus::NoToolOut;
+	FGameplayTag prevToolStatus = FGameplayTag::EmptyTag;
 
-	UPROPERTY(BlueprintReadOnly)
-	TEnumAsByte<LocationStatus> curPlayerLocation = LocationStatus::HomeYard;
-	UFUNCTION(BlueprintCallable)
-	LocationStatus getPlayerLocation() { return curPlayerLocation; };
-	UFUNCTION(BlueprintCallable)
-	void setPlayerLocation(LocationStatus newLoc) { curPlayerLocation = newLoc; };
 
 	//Grid snapping and item placement
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (ToolTip = "What number to round towards for grid snapping"))
@@ -269,6 +271,5 @@ protected:
 	USkeletalMeshComponent* myMainMesh;
 	UFUNCTION(BlueprintImplementableEvent)
 	void reAttachTool(FName socket);
-
 };
 

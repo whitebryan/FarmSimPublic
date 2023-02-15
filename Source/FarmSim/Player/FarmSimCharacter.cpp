@@ -84,6 +84,10 @@ void AFarmSimCharacter::BeginPlay()
 
 	mySaveManager = Cast<UPlayerSaveManagerComponent>(GetComponentByClass(UPlayerSaveManagerComponent::StaticClass()));
 	toolMesh = Cast<UStaticMeshComponent>(GetDefaultSubobjectByName(TEXT("toolMesh")));
+
+	locationTag = FGameplayTag::RequestGameplayTag("Location");
+	playerStatusTag = FGameplayTag::RequestGameplayTag("PlayerStatus");
+	toolStatusTag = FGameplayTag::RequestGameplayTag("PlayerToolStatus");
 }
 
 //
@@ -201,7 +205,9 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 		curNotification = newNotif.Key;
 	}
 
-	if (toolStatus == PlayerToolStatus::ShovelOut || toolStatus == PlayerToolStatus::WateringCanOut)//Create and show a placement preview for digging a growth plot or watering crops
+	FGameplayTag curTool = findTagOfType(toolStatusTag);
+
+	if (curTool.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Shovel")) || curTool.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Watering Can")))//Create and show a placement preview for digging a growth plot or watering crops
 	{
 		FHitResult RV_Hit;
 		RV_Hit = placementLineTraceDown();
@@ -210,7 +216,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 		FVector placementPoint = RV_Hit.ImpactPoint;
 		placementPoint.Z += growthPlotZExtent;
 
-		if (!IsValid(placementPreview) && toolStatus == PlayerToolStatus::ShovelOut)
+		if (!IsValid(placementPreview) && curTool.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Shovel")))
 		{
 			FActorSpawnParameters myParams;
 			myParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -218,14 +224,14 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 			placementPreview->SetHidden(false);
 			objectToTrack = placementPreview;
 		}
-		else if (!IsValid(placementPreview) && toolStatus == PlayerToolStatus::WateringCanOut)
+		else if (!IsValid(placementPreview) && curTool.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Watering Can")))
 		{
 			FActorSpawnParameters myParams;
 			myParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			placementPreview = GetWorld()->SpawnActor<AActor>(wateringCanPreview, placementPoint, UKismetMathLibrary::MakeRotator(0, 0, 0), myParams);
 			placementPreview->SetHidden(false);
 		}
-		else if(IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("GrowthPlot") && toolStatus == PlayerToolStatus::ShovelOut)
+		else if (IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("GrowthPlot") && curTool.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Shovel")))
 		{
 			placementPreview->SetActorLocation(RV_Hit.GetActor()->GetActorLocation());
 			if (placementPreview->GetClass()->ImplementsInterface(UItemHighlightInterface::StaticClass()))
@@ -233,7 +239,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 				IItemHighlightInterface::Execute_ChangeHighlight(placementPreview, true);
 			}
 		}
-		else if(IsValid(RV_Hit.GetActor()) && surfaceHit == SurfaceTypeGround && toolStatus == PlayerToolStatus::ShovelOut)
+		else if (IsValid(RV_Hit.GetActor()) && surfaceHit == SurfaceTypeGround && curTool.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Shovel")))
 		{
 			if (placementPreview->GetClass()->ImplementsInterface(UItemHighlightInterface::StaticClass()))
 			{
@@ -243,7 +249,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 			placementPreview->SetActorLocation(placementPoint);
 			placementPreview->SetActorHiddenInGame(false);
 		}
-		else if(toolStatus == PlayerToolStatus::WateringCanOut)
+		else if (curTool.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Watering Can")))
 		{
 			if (IsValid(RV_Hit.GetActor()) && RV_Hit.GetActor()->ActorHasTag("GrowthPlot"))
 			{
@@ -258,20 +264,20 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 			placementPreview->SetActorHiddenInGame(true);
 		}
 	}
-	else if (curPlayerStatus == PlayerStatus::Placement)
+	else if (findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement")))
 	{
 		FHitResult RV_Hit;
 		RV_Hit = placementLineTraceDown();
 
 		FVector placementPoint = RV_Hit.ImpactPoint;
 
-		if (curSelectedItemSlot >= 0 && !IsValid(placementPreview) && curPlayerStatus == PlayerStatus::Placement)
+		if (curSelectedItemSlot >= 0 && !IsValid(placementPreview) && findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement")))
 		{
 			TArray<FName> rowNames = placeablesTable->GetRowNames();
 			FName curItemID = myInventoryComp->getItemAtSlot(curSelectedItemSlot).item->uniqueID;
 			FInvTableItem* itemToPlace = placeablesTable->FindRow<FInvTableItem>(curItemID, FString(""));
 
-			if(itemToPlace == nullptr)
+			if (itemToPlace == nullptr)
 				return;
 
 			FActorSpawnParameters myParams;
@@ -293,7 +299,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 				lastHighlighted = RV_Hit.GetActor();
 			}
 		}
-		else if(IsValid(placementPreview))
+		else if (IsValid(placementPreview))
 		{
 			if (IsValid(lastHighlighted))
 			{
@@ -307,9 +313,9 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 			newRot.Pitch = 0;
 			newRot.Roll = 0;
 
-			if(UKismetMathLibrary::Abs(newRot.Yaw) == 180)
+			if (UKismetMathLibrary::Abs(newRot.Yaw) == 180)
 				newRot.Yaw = 0;
-			else if(UKismetMathLibrary::Abs(newRot.Yaw) == 0)
+			else if (UKismetMathLibrary::Abs(newRot.Yaw) == 0)
 				newRot.Yaw = 180;
 			else
 				newRot.Yaw *= -1;
@@ -335,7 +341,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 			}
 		}
 	}
-	else if (curFishingIndicator && curPlayerStatus == PlayerStatus::FishingCasting)
+	else if (curFishingIndicator && findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.FishingCasting")))
 	{
 		if (curDistance >= maxCastDistance)
 		{
@@ -344,7 +350,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 
 			if (waterHit)
 			{
-				setPlayerStatus(PlayerStatus::Fishing);
+				setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Fishing"));
 				if (GetWorld())
 				{
 					FRotator newRot = GetActorRotation();
@@ -375,7 +381,7 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 			{
 				toolUsed = false;
 				objectToTrack = nullptr;
-				setPlayerStatus(PlayerStatus::NormalState);
+				setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal"));
 			}
 
 			curFishingIndicator->Destroy();
@@ -394,7 +400,8 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 // Input
 void AFarmSimCharacter::CameraUpAction_Implementation(float Rate)
 {
-	if (curPlayerStatus != PlayerStatus::NormalState && curPlayerStatus != PlayerStatus::Fishing && curPlayerStatus != PlayerStatus::FishingCasting && curPlayerStatus != PlayerStatus::Placement)
+	//if (curPlayerStatus != PlayerStatus::NormalState && curPlayerStatus != PlayerStatus::Fishing && curPlayerStatus != PlayerStatus::FishingCasting && curPlayerStatus != PlayerStatus::Placement)
+	if(findTagOfType(playerStatusTag).MatchesAnyExact(cameraRestrictingTags))
 		return;
 
 	// calculate delta for this frame from the rate information
@@ -403,7 +410,8 @@ void AFarmSimCharacter::CameraUpAction_Implementation(float Rate)
 
 void AFarmSimCharacter::CameraRightAction_Implementation(float Rate)
 {
-	if (curPlayerStatus != PlayerStatus::NormalState && curPlayerStatus != PlayerStatus::Fishing && curPlayerStatus != PlayerStatus::FishingCasting && curPlayerStatus != PlayerStatus::Placement)
+	//if (curPlayerStatus != PlayerStatus::NormalState && curPlayerStatus != PlayerStatus::Fishing && curPlayerStatus != PlayerStatus::FishingCasting && curPlayerStatus != PlayerStatus::Placement)
+	if (findTagOfType(playerStatusTag).MatchesAnyExact(cameraRestrictingTags))
 		return;
 
 	// calculate delta for this frame from the rate information
@@ -412,7 +420,8 @@ void AFarmSimCharacter::CameraRightAction_Implementation(float Rate)
 
 void AFarmSimCharacter::MoveForwardAction_Implementation(float Value)
 {
-	if (!toolUsed && (Controller != nullptr) && (Value != 0.0f) && (curPlayerStatus == PlayerStatus::NormalState || curPlayerStatus == PlayerStatus::Placement))
+	//if (!toolUsed && (Controller != nullptr) && (Value != 0.0f) && (curPlayerStatus == PlayerStatus::NormalState || curPlayerStatus == PlayerStatus::Placement))
+	if(!toolUsed && (Controller != nullptr) && (Value != 0.0f) && findTagOfType(playerStatusTag).MatchesAnyExact(movementAllowableTags))
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -426,7 +435,8 @@ void AFarmSimCharacter::MoveForwardAction_Implementation(float Value)
 
 void AFarmSimCharacter::MoveRightAction_Implementation(float Value)
 {
-	if (!toolUsed && (Controller != nullptr) && (Value != 0.0f) && (curPlayerStatus == PlayerStatus::NormalState || curPlayerStatus == PlayerStatus::Placement))
+	//if (!toolUsed && (Controller != nullptr) && (Value != 0.0f) && (curPlayerStatus == PlayerStatus::NormalState || curPlayerStatus == PlayerStatus::Placement))
+	if(!toolUsed && (Controller != nullptr) && (Value != 0.0f) && findTagOfType(playerStatusTag).MatchesAnyExact(movementAllowableTags))
 	{
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -441,7 +451,8 @@ void AFarmSimCharacter::MoveRightAction_Implementation(float Value)
 
 void AFarmSimCharacter::SprintAction_Implementation(float Value)
 {
-	if (!toolUsed && (Controller != nullptr) && (curPlayerStatus == PlayerStatus::NormalState || curPlayerStatus == PlayerStatus::Placement))
+	//if(!toolUsed && (Controller != nullptr) && (curPlayerStatus == PlayerStatus::NormalState || curPlayerStatus == PlayerStatus::Placement))
+	if(!toolUsed && (Controller != nullptr) && findTagOfType(playerStatusTag).MatchesAnyExact(movementAllowableTags))
 	{
 		UCharacterMovementComponent* myMoveComp = Cast<UCharacterMovementComponent>(GetComponentByClass(UCharacterMovementComponent::StaticClass()));
 		if (myMoveComp->MaxWalkSpeed == walkSpeed)
@@ -461,7 +472,8 @@ void AFarmSimCharacter::SprintAction_Implementation(float Value)
 
 void AFarmSimCharacter::WalkAction_Implementation(float Value)
 {
-	if (!toolUsed && (Controller != nullptr) && (curPlayerStatus == PlayerStatus::NormalState || curPlayerStatus == PlayerStatus::Placement))
+	//if (!toolUsed && (Controller != nullptr) && (curPlayerStatus == PlayerStatus::NormalState || curPlayerStatus == PlayerStatus::Placement))
+	if (!toolUsed && (Controller != nullptr) && findTagOfType(playerStatusTag).MatchesAnyExact(movementAllowableTags))
 	{
 		UCharacterMovementComponent* myMoveComp = Cast<UCharacterMovementComponent>(GetComponentByClass(UCharacterMovementComponent::StaticClass()));
 
@@ -482,7 +494,9 @@ void AFarmSimCharacter::WalkAction_Implementation(float Value)
 
 void AFarmSimCharacter::InteractAction_Implementation()
 {
-	if (curPlayerStatus == PlayerStatus::InMenu)
+	FGameplayTag curStatus = findTagOfType(playerStatusTag);
+
+	if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu")))
 	{
 		if (IsValid(interactActorComp) && (interactActorComp->interactionType == "Loot" || interactActorComp->interactionType == "Crafting") && interactActorComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
 		{
@@ -493,20 +507,24 @@ void AFarmSimCharacter::InteractAction_Implementation()
 				IItemHighlightInterface::Execute_ChangeHighlight(lastHighlighted, false);
 				lastHighlighted = nullptr;
 			}
-		}
 
-		EscMenuAction();
-		return;
+			EscMenuAction();
+			return;
+		}
+		else // if player in conversation tag
+		{
+
+		}
 	}
 
-	if (curPlayerStatus == PlayerStatus::Fishing)
+	if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Fishing")))
 	{
 		if (curFishingMiniGame->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
 		{
 			IInteractInterface::Execute_Interact(curFishingMiniGame);
 		}
 	}
-	else if (curPlayerStatus == PlayerStatus::Placement)
+	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement")))
 	{
 		if (curSelectedItemSlot >= 0)
 		{
@@ -519,17 +537,17 @@ void AFarmSimCharacter::InteractAction_Implementation()
 	}
 	else if (interactActorComp != nullptr)//If we are interacting with something using an interaction component
 	{
-		if (curPlayerStatus == PlayerStatus::InMenu && interactActorComp->interactionType == "Loot")
+		if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu")) && interactActorComp->interactionType == "Loot")
 		{
-			setPlayerStatus(PlayerStatus::NormalState);
+			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal"));
 			toggleMenuUI(false, "Inventory", false);
 		}
 		else if (interactActorComp->interactionType == "Loot")
 		{
-			setPlayerStatus(PlayerStatus::InMenu);
+			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu"));
 			toggleMenuUI(true, "Inventory", false);
 		}
-		else if (curPlayerStatus == PlayerStatus::Planting)
+		else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Planting")))
 		{
 			FName cropToPlant = myInventoryComp->getItemAtSlot(curSelectedItemSlot).item->uniqueID;
 			AGrowthPlot* curPlot = Cast<AGrowthPlot>(interactActorComp->GetOwner());
@@ -545,7 +563,7 @@ void AFarmSimCharacter::InteractAction_Implementation()
 
 				myInventoryComp->changeQuantity(cropToPlant, -1);
 
-				setPlayerStatus(PlayerStatus::NormalState);
+				setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal"));
 				setSelectedItem(false);
 			}
 			else
@@ -565,7 +583,7 @@ void AFarmSimCharacter::InteractAction_Implementation()
 			if (curSelectedItemSlot != -1)
 			{
 				setSelectedItem();
-				setPlayerStatus(PlayerStatus::Planting);
+				setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Planting"));
 			}
 			else
 			{
@@ -587,23 +605,27 @@ void AFarmSimCharacter::InteractAction_Implementation()
 
 void AFarmSimCharacter::UseToolAction_Implementation()
 {
-	if (curPlayerStatus == PlayerStatus::Placement)
+	FGameplayTag curStatus = findTagOfType(playerStatusTag);
+	if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement")))
 	{
 		placePlaceable(false);
 		return;
 	}
-	else if (toolUsed && toolStatus != PlayerToolStatus::FishingRodOut)
+	else if (toolUsed && !findTagOfType(toolStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Fishing Rod")))
 	{
 		return;
 	}
-	else if (curPlayerStatus == PlayerStatus::InMenu)
+	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu")))
 	{
 		return;
 	}
 
-	switch (toolStatus)
-	{
-	case PlayerToolStatus::ShovelOut: //Line trace down digDistance in front of the player and check if the ground is free if so create a growth plot there
+	FString toolKey;
+	FString toolTypeString;
+
+	findTagOfType(toolStatusTag).GetTagName().ToString().Split(FString("."), &toolKey, &toolTypeString);
+
+	if(toolTypeString == "Shovel") //Line trace down digDistance in front of the player and check if the ground is free if so create a growth plot there
 	{
 		FHitResult RV_Hit = placementLineTraceDown();
 
@@ -623,13 +645,15 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 		}
 		else if (surfaceHit == SurfaceTypeGround)
 		{
+			FGameplayTag locTag = findTagOfType(locationTag);
+
 			//Currenlty only checking the middle, check if the slope is bigger than the maxiumun slope for placeable objects
 			if (UKismetMathLibrary::Abs(RV_Hit.Normal.Y) > maxSlope)
 			{
 				displayNotification("Ground is not flat enough");
 				return;
 			}
-			else if (curPlayerLocation != LocationStatus::HomeYard)
+			else if (!locTag.MatchesTagExact(FGameplayTag::RequestGameplayTag("Location.Home Yard")))
 			{
 				displayNotification("You may not dig in this location.");
 				return;
@@ -645,9 +669,8 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 				AActor* newPlot = GetWorld()->SpawnActor<AActor>(growthPlotActor, placementPoint, UKismetMathLibrary::MakeRotator(0, 0, 0), myParams);
 			}
 		}
-		break;
 	}
-	case PlayerToolStatus::WateringCanOut: //Box Trace down digDistance in front of player and try to water all plants hit
+	else if(toolTypeString == "Watering Can")  //Box Trace down digDistance in front of player and try to water all plants hit
 	{
 		toolUsed = true;
 		TArray<FHitResult> RV_Hits;
@@ -683,10 +706,9 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 				}
 			}
 		}
-		break;
 	}
-	case PlayerToolStatus::PickaxeOut://These two just send a message to interact with the harvest locations so that interact and use tool can be done using either key
-	case PlayerToolStatus::AxeOut:
+	else if (toolTypeString == "Pickaxe" || toolTypeString == "Axe")
+	{
 		if (IsValid(interactActorComp))
 		{
 			if (interactActorComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
@@ -694,15 +716,13 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 				IInteractInterface::Execute_Interact(interactActorComp);
 			}
 		}
-		break;
-	case PlayerToolStatus::FishingRodOut:
-		if (curPlayerStatus == PlayerStatus::Fishing)
+	}
+	else if (toolTypeString == "Fishing Rod")
+	{
+		if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Fishing")))
 		{
 			InteractAction();
 		}
-		break;
-	default:
-		break;
 	}
 }
 
@@ -714,13 +734,16 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 //Separate function used for fishing casting because I need to use pressed and released actions
 void AFarmSimCharacter::FishingCastAction_Implementation(bool pressed)
 {
-	if(curPlayerStatus == PlayerStatus::Fishing || IsValid(curFishingMiniGame))
+	FGameplayTag curStatus = findTagOfType(playerStatusTag);
+	if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Fishing")) || IsValid(curFishingMiniGame))
+	{
 		return;
+	}
 
-	if (pressed && curPlayerStatus == PlayerStatus::NormalState)
+	if (pressed && curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal")))
 	{
 		toolUsed = true;
-		setPlayerStatus(PlayerStatus::FishingCasting);
+		setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.FishingCasting"));
 
 		FActorSpawnParameters myParams;
 		myParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -730,14 +753,14 @@ void AFarmSimCharacter::FishingCastAction_Implementation(bool pressed)
 		curFishingIndicator = GetWorld()->SpawnActor<AActor>(fishingIndicatorBlueprint, findGround.ImpactPoint, GetActorRotation(), myParams);
 		objectToTrack = curFishingIndicator;
 	}
-	else if(curPlayerStatus == PlayerStatus::FishingCasting)
+	else if(curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.FishingCasting")))
 	{
 		curDistance = 1;
 		bool waterHit = checkForPhysMat(curFishingIndicator->GetActorLocation(), SurfaceTypeWater);
 
 		if (waterHit)
 		{
-			setPlayerStatus(PlayerStatus::Fishing);
+			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Fishing"));
 			if (GetWorld())
 			{
 				FRotator newRot = GetActorRotation();
@@ -768,7 +791,7 @@ void AFarmSimCharacter::FishingCastAction_Implementation(bool pressed)
 		{
 			toolUsed = false;
 			objectToTrack = nullptr;
-			setPlayerStatus(PlayerStatus::NormalState);
+			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal"));
 		}
 
 		curFishingIndicator->Destroy();
@@ -779,7 +802,7 @@ void AFarmSimCharacter::FishingCastAction_Implementation(bool pressed)
 
 void AFarmSimCharacter::JumpAction_Implementation(bool isJumping)
 {
-	if(curPlayerStatus != PlayerStatus::NormalState)
+	if(!findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal")))
 		return;
 
 	if (isJumping)
@@ -795,7 +818,7 @@ void AFarmSimCharacter::JumpAction_Implementation(bool isJumping)
 //Scrolling through various things
 void AFarmSimCharacter::ScrollItemsAction_Implementation(float Value)
 {
-	if (curPlayerStatus == PlayerStatus::NormalState && otherInteractComps.Num() > 1)//Scroll through overlapped interactable objects
+	if (findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal")) && otherInteractComps.Num() > 1)//Scroll through overlapped interactable objects
 	{
 		int newIndex = otherInteractComps.Find(interactActorComp);
 
@@ -837,50 +860,23 @@ void AFarmSimCharacter::ScrollItemsAction_Implementation(float Value)
 		}
 
 	}
-	else if (!toolUsed && curPlayerStatus == PlayerStatus::NormalState && Value != 0)//Scroll through equipped tools
-	{
-		uint8 curTool = (uint8)toolStatus;
-		if(Value > 0)
-		{
-			++curTool;
-		}
-		else if(Value < 0)
-		{
-			--curTool;
-		}
-
-		if (curTool <= 0)
-		{
-			curTool = 5;
-		}
-		else if (curTool > 5)
-		{
-			curTool = 1;
-		}
-
-		changeEquippedTool((PlayerToolStatus)curTool);
-	}
-	else if(curPlayerStatus == PlayerStatus::Planting)//Scroll through items for planting or placement
+	else if (findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Planting")) || findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement")))//Scroll through items for planting or placement
 	{
 		FName itemType;
 
-		switch (curPlayerStatus)
-		{	
-		case PlayerStatus::Planting:
+		if (findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Planting")))
+		{
 			itemType = "Seed";
-			break;
-		case PlayerStatus::Placement:
+		}
+		else
+		{
 			if (IsValid(placementPreview))
 			{
 				placementPreview->Destroy();
 			}
 			itemType = "Placeable";
-			break;
-		default:
-			return;
-			break;
 		}
-		
+
 		int newSlot = -5;
 
 		if (Value > 0)
@@ -896,75 +892,114 @@ void AFarmSimCharacter::ScrollItemsAction_Implementation(float Value)
 		{
 			EscMenuAction();
 		}
-		else if(newSlot != -1 && myInventoryComp->itemTypeExists(itemType))
+		else if (newSlot != -1 && myInventoryComp->itemTypeExists(itemType))
 		{
 			curSelectedItemSlot = newSlot;
 			setSelectedItem();
 		}
 	}
+	else if (!toolUsed && findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal")) && Value != 0)//Scroll through equipped tools
+	{
+		int curTool = -1;
+		TArray<FGameplayTag> keys;
+		currentTools.GetKeys(keys);
+		for (int i = 0; i < keys.Num(); ++i)
+		{
+			if (keys[i].MatchesTagExact(findTagOfType(toolStatusTag)))
+			{
+				curTool = i;
+				break;
+			}
+		}
+
+		if (curTool == -1)
+		{
+			return;
+		}
+		else if(Value > 0)
+		{
+			++curTool;
+		}
+		else if(Value < 0)
+		{
+			--curTool;
+		}
+
+		if (curTool <= 0)
+		{
+			curTool = 4;
+		}
+		else if (curTool >= 5)
+		{
+			curTool = 0;
+		}
+
+		changeEquippedTool(keys[curTool]);
+		UKismetSystemLibrary::PrintWarning("Scroll tools");
+	}
 }
 
-void AFarmSimCharacter::changeEquippedTool_Implementation(PlayerToolStatus newTool)
+void AFarmSimCharacter::changeEquippedTool_Implementation(FGameplayTag newTool)
 {
-	if (toolUsed || curPlayerStatus == PlayerStatus::InMenu)
+	if (toolUsed || findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu")))
 	{
 		return;
 	}
-	if (newTool == toolStatus)
+
+
+	if(findTagOfType(toolStatusTag).MatchesTagExact(newTool))
 	{
-		prevToolStatus = toolStatus;
-		toolStatus = PlayerToolStatus::NoToolOut;
+		prevToolStatus = findTagOfType(toolStatusTag);
+		changeTag(FGameplayTag::RequestGameplayTag("PlayerToolStatus.No Tool"));
 		toolMesh->SetVisibility(false);
+
+		//Broadcast change for UI and model changes
+		PlayerToolChanged.Broadcast(FGameplayTag::RequestGameplayTag("PlayerToolStatus.No Tool"));
 	}
 	else
 	{
 		toolMesh->SetVisibility(true);
 		toolMesh->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+		prevToolStatus = findTagOfType(toolStatusTag);
+		changeTag(newTool);
 		FName newSocket;
-		switch (newTool)
-		{
+		FString toolKey;
+		FString toolTypeString;
 
-		case PlayerToolStatus::PickaxeOut:
-			prevToolStatus = toolStatus;
-			toolStatus = PlayerToolStatus::PickaxeOut;
-			toolMesh->SetStaticMesh(currentTools["Pickaxe"]->model);
+		newTool.GetTagName().ToString().Split(FString("."), &toolKey, &toolTypeString);
+
+		if (toolTypeString == "Pickaxe")
+		{
 			newSocket = "pickSocket";
-			break;
-		case PlayerToolStatus::AxeOut:
-			prevToolStatus = toolStatus;
-			toolStatus = PlayerToolStatus::AxeOut;
-			toolMesh->SetStaticMesh(currentTools["Axe"]->model);
-			newSocket = "axeSocket";
-			break;
-		case PlayerToolStatus::ShovelOut:
-			prevToolStatus = toolStatus;
-			toolStatus = PlayerToolStatus::ShovelOut;
-			toolMesh->SetStaticMesh(currentTools["Shovel"]->model);
-			newSocket = "shovelSocket";
-			break;
-		case PlayerToolStatus::WateringCanOut:
-			prevToolStatus = toolStatus;
-			toolStatus = PlayerToolStatus::WateringCanOut;
-			toolMesh->SetStaticMesh(currentTools["WaterCan"]->model);
-			newSocket = "watercanSocket";
-			break;
-		case PlayerToolStatus::FishingRodOut:
-			prevToolStatus = toolStatus;
-			toolStatus = PlayerToolStatus::FishingRodOut;
-			toolMesh->SetStaticMesh(currentTools["FishingRod"]->model);
-			newSocket = "rodSocket";
-			break;
-		default:
-			break;
 		}
-		
+		else if (toolTypeString == "Axe")
+		{
+			newSocket = "axeSocket";
+
+		}
+		else if (toolTypeString == "Shovel")
+		{
+			newSocket = "shovelSocket";
+
+		}
+		else if (toolTypeString == "Watering Can")
+		{
+			newSocket = "watercanSocket";
+
+		}
+		else if (toolTypeString == "Fishing Rod")
+		{
+			newSocket = "rodSocket";
+
+		}
+
+		toolMesh->SetStaticMesh(currentTools[newTool]->model);
 		reAttachTool(newSocket);
+		//Broadcast change for UI and model changes
+		PlayerToolChanged.Broadcast(newTool);
 	}
 
-	//Broadcast change for UI and model changes
-	PlayerToolChanged.Broadcast(toolStatus);
-
-	if ((prevToolStatus == PlayerToolStatus::ShovelOut || prevToolStatus == PlayerToolStatus::WateringCanOut) && IsValid(placementPreview))
+	if ((prevToolStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Shovel")) || prevToolStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Watering Can"))) && IsValid(placementPreview))
 	{
 		placementPreview->Destroy();
 		placementPreview = nullptr;
@@ -975,22 +1010,22 @@ void AFarmSimCharacter::changeEquippedTool_Implementation(PlayerToolStatus newTo
 //Enter/Exit Placementmode
 void AFarmSimCharacter::togglePlacementModeAction_Implementation()
 {
-	if (curPlayerStatus == PlayerStatus::Placement)
+	if (findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement")))
 	{
 		curSelectedItemSlot = -2;
 		setSelectedItem(false);
-		setPlayerStatus(PlayerStatus::NormalState);
+		setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal"));
 
 		if (IsValid(placementPreview))
 		{
 			placementPreview->Destroy();
 		}
 	}
-	else if(curPlayerStatus == PlayerStatus::NormalState)
+	else if(findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal")))
 	{
-		changeEquippedTool(toolStatus);
+		changeEquippedTool(FGameplayTag::RequestGameplayTag("PlayerToolStatus.No Tool"));
 		curSelectedItemSlot = myInventoryComp->findNextItemOfType(-2, 1, "Placeable");
-		setPlayerStatus(PlayerStatus::Placement);
+		setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement"));
 		setSelectedItem();
 	}
 }
@@ -998,65 +1033,74 @@ void AFarmSimCharacter::togglePlacementModeAction_Implementation()
 //Close the game or back out of menus
 void AFarmSimCharacter::EscMenuAction_Implementation()
 {
-	switch (curPlayerStatus)
+	FGameplayTag curStatus = findTagOfType(playerStatusTag);
+	
+	if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Planting")))
 	{
-	case PlayerStatus::Planting:
-		setPlayerStatus(PlayerStatus::NormalState);
+		setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal"));
 		setSelectedItem(false);
 		curSelectedItemSlot = -2;
-		if(IsValid(placementPreview))
+		if (IsValid(placementPreview))
+		{
 			placementPreview->Destroy();
-		break;
-	case PlayerStatus::Placement:
-		setPlayerStatus(PlayerStatus::NormalState);
+		}
+	}
+	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement")))
+	{
+		setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal"));
 		setSelectedItem(false);
 		curSelectedItemSlot = -2;
 		if (IsValid(placementPreview))
 			placementPreview->Destroy();
-		break;
-	case PlayerStatus::NormalState:
+	}
+	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal")))
+	{
 		toggleMenuUI(true, "Settings");
-		break;
-	case PlayerStatus::InMenu:
+	}
+	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu")))
+	{
 		toggleMenuUI(false);
-		break;
-	default:
-		break;
 	}
 }
 
 
 //Change current player status and broadcast to all those listening
-void AFarmSimCharacter::setPlayerStatus(PlayerStatus newStatus)
+void AFarmSimCharacter::setPlayerStatus(FGameplayTag newStatus)
 {
-	prevPlayerStatus = curPlayerStatus;
-	curPlayerStatus = newStatus;
-	PlayerStatusChanged.Broadcast(curPlayerStatus);
+	if (newStatus.RequestDirectParent().GetTagName().ToString() != "PlayerStatus")
+	{
+		UKismetSystemLibrary::PrintWarning("Only for player status tags");
+	}
 
-	if (prevPlayerStatus == PlayerStatus::Placement && IsValid(lastHighlighted))
+	prevPlayerStatus = findTagOfType(playerStatusTag);
+	changeTag(newStatus);
+	PlayerStatusChanged.Broadcast(newStatus);
+
+	if (prevPlayerStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement")) && IsValid(lastHighlighted))
 	{
 		IItemHighlightInterface::Execute_ChangeHighlight(lastHighlighted, false);
 		lastHighlighted = nullptr;
 	}
 }
 
-void AFarmSimCharacter::changeTool(const FName toolType, UToolItemAsset* newTool)
+void AFarmSimCharacter::changeTool(UToolItemAsset* newTool)
 {
-	if (currentTools.Contains(toolType))
+	if (currentTools.Contains(newTool->toolStatus))
 	{
-		currentTools[toolType] = newTool;
+		currentTools[newTool->toolStatus] = newTool;
 	}
 }
 
-UToolItemAsset* AFarmSimCharacter::grabTool(const FName toolType)
+UToolItemAsset* AFarmSimCharacter::grabTool(FGameplayTag toolTag)
 {
-	if (currentTools.Contains(toolType))
+
+	if (currentTools.Contains(toolTag))
 	{
-		return currentTools[toolType];
+		return currentTools[toolTag];
 	}
 	else
 	{
-		return currentTools["Pickaxe"];//shouldnt be possible to hit this
+		return nullptr;
 	}
 }
 
@@ -1123,7 +1167,7 @@ void AFarmSimCharacter::fishingMiniGameDelegateFunc(bool Status, const FInvItem&
 
 	toolUsed = false;
 	objectToTrack = nullptr;
-	setPlayerStatus(PlayerStatus::NormalState);
+	setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal"));
 }
 
 void AFarmSimCharacter::fishingRecordDelegateFunc(FFishRecordStruct fishRecord)
@@ -1211,8 +1255,13 @@ void AFarmSimCharacter::placePlaceable(bool place)
 			TArray<FName> rowNames = placeablesTable->GetRowNames();
 			FName curItemID = myInventoryComp->getItemAtSlot(curSelectedItemSlot).item->uniqueID;
 			FInvTableItem* itemToPlace = placeablesTable->FindRow<FInvTableItem>(curItemID, FString(""));
+			if (itemToPlace == nullptr)
+			{
+				UKismetSystemLibrary::PrintWarning("Invalid row");
+				return;
+			}
 
-			if (!itemToPlace->placeableBiome.Contains(curPlayerLocation))
+			if (!itemToPlace->placeableBiome.HasTagExact(findTagOfType(locationTag)))
 			{
 				displayNotification("You cannot place that in this zone");
 				return;
@@ -1299,4 +1348,36 @@ void AFarmSimCharacter::placePlaceable(bool place)
 void AFarmSimCharacter::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
 {
 	TagContainer = playerTags;
+}
+
+void AFarmSimCharacter::setPlayerUI_Implementation(bool bStatus, const FName menuToOpenTo = "None", bool bShouldToggle = false)
+{
+	toggleMenuUI(bStatus, menuToOpenTo, bShouldToggle);
+}
+
+FGameplayTag AFarmSimCharacter::findTagOfType(FGameplayTag parentTag)
+{
+	for (int i = 0; i < playerTags.Num(); ++i)
+	{
+		FGameplayTag curTag = playerTags.GetByIndex(i);
+		if (curTag.MatchesTag(parentTag))
+		{
+			return curTag;
+		}
+	}
+	return FGameplayTag::EmptyTag;
+}
+
+void AFarmSimCharacter::changeTag(FGameplayTag newTag)
+{
+	FGameplayTag tagToRemove = findTagOfType(newTag.RequestDirectParent());
+	if (tagToRemove == FGameplayTag::EmptyTag)
+	{
+		playerTags.AddTag(newTag);
+	}
+	else
+	{
+		playerTags.RemoveTag(tagToRemove, true);
+		playerTags.AddTag(newTag);
+	}
 }

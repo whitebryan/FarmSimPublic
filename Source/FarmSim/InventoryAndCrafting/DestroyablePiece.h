@@ -28,7 +28,7 @@ public:
 	virtual FString toolTierToString() override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly);
-	TEnumAsByte<PlayerToolStatus> toolRequired = PlayerToolStatus::PickaxeOut;
+	FGameplayTag toolRequired = FGameplayTag::EmptyTag;
 
 	FString toolType = "Pickaxe";
 

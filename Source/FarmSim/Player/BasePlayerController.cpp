@@ -6,7 +6,6 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
-#include "../PlayerStatus.h"
 
 
 
@@ -173,7 +172,7 @@ void ABasePlayerController::EquipPickaxeAction(const FInputActionValue& Value)
 {
 	if (PossessedCharacter)
 	{
-		PossessedCharacter->changeEquippedTool(PlayerToolStatus::PickaxeOut);
+		PossessedCharacter->changeEquippedTool(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Pickaxe"));
 	}
 }
 
@@ -181,7 +180,7 @@ void ABasePlayerController::EquipAxeAction(const FInputActionValue& Value)
 {
 	if (PossessedCharacter)
 	{
-		PossessedCharacter->changeEquippedTool(PlayerToolStatus::AxeOut);
+		PossessedCharacter->changeEquippedTool(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Axe"));
 	}
 }
 
@@ -189,7 +188,7 @@ void ABasePlayerController::EquipShovelAction(const FInputActionValue& Value)
 {
 	if (PossessedCharacter)
 	{
-		PossessedCharacter->changeEquippedTool(PlayerToolStatus::ShovelOut);
+		PossessedCharacter->changeEquippedTool(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Shovel"));
 	}
 }
 
@@ -197,7 +196,7 @@ void ABasePlayerController::EquipWaterCanAction(const FInputActionValue& Value)
 {
 	if (PossessedCharacter)
 	{
-		PossessedCharacter->changeEquippedTool(PlayerToolStatus::WateringCanOut);
+		PossessedCharacter->changeEquippedTool(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Watering Can"));
 	}
 }
 
@@ -205,13 +204,13 @@ void ABasePlayerController::EquipFishingRodAction(const FInputActionValue& Value
 {
 	if (PossessedCharacter)
 	{
-		PossessedCharacter->changeEquippedTool(PlayerToolStatus::FishingRodOut);
+		PossessedCharacter->changeEquippedTool(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Fishing Rod"));
 	}
 }
 
 void ABasePlayerController::FishingCastAction(const FInputActionValue& Value)
 {
-	if (PossessedCharacter && PossessedCharacter->getEquippeddTool() == PlayerToolStatus::FishingRodOut)
+	if (PossessedCharacter && PossessedCharacter->findTagOfType(PossessedCharacter->toolStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.Fishing Rod")))
 	{
 		if (Value.GetMagnitude() == 1)
 		{

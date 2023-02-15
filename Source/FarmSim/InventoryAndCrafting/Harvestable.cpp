@@ -23,21 +23,7 @@ void AHarvestable::BeginPlay()
 	if (IsValid(itemToHarvest))
 	{
 		meshComponent->SetStaticMesh(itemToHarvest->harvestableModel);
-
-			switch (itemToHarvest->requiredToolStatus)
-			{
-			case PlayerToolStatus::AxeOut:
-				toolType = "Axe";
-					break;
-			case PlayerToolStatus::PickaxeOut:
-				toolType = "Pickaxe";
-					break;
-			case PlayerToolStatus::ShovelOut:
-				toolType = "Shovel";
-				break;
-			default:
-				break;
-			}
+		toolType = FName(*toolTypeToString());
 	}
 }
 
@@ -68,9 +54,9 @@ void AHarvestable::Tick(float DeltaTime)
 void AHarvestable::tryHarvest() //Check if the players tool is able to harvest then harvest add to their inventory and respawn if set to respawn
 {
 	AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
-	if (player->getEquippeddTool() == itemToHarvest->requiredToolStatus || !itemToHarvest->requiresTool)
+	if (player->findTagOfType(player->toolStatusTag).MatchesTagExact(itemToHarvest->requiredToolStatus) || !itemToHarvest->requiresTool)
 	{
-		UToolItemAsset* playerTool = player->grabTool(toolType);
+		UToolItemAsset* playerTool = player->grabTool(itemToHarvest->requiredToolStatus);
 		if (playerTool->type == toolType || !itemToHarvest->requiresTool)
 		{
 			if (playerTool->toolTier >= itemToHarvest->toolLevel || !itemToHarvest->requiresTool)
@@ -175,17 +161,26 @@ void AHarvestable::delayedMeshChange()
 //Simply converting toolType or toolTier to a string for use in return messages because I found no way to grab the display name of a TEnumAsByte
 FString AHarvestable::toolTypeToString()
 {
-	switch (itemToHarvest->requiredToolStatus)
+	FString toolKey;
+	FString toolTypeString;
+
+	itemToHarvest->requiredToolStatus.GetTagName().ToString().Split(FString("."), &toolKey, &toolTypeString);
+
+	if (toolTypeString == "Axe")
 	{
-	case PlayerToolStatus::AxeOut:
 		return "Axe";
-	case PlayerToolStatus::PickaxeOut:
+	}
+	else if (toolTypeString == "Pickaxe")
+	{
 		return "Pickaxe";
-	case PlayerToolStatus::ShovelOut:
+	}
+	else if (toolTypeString == "Pickaxe")
+	{
 		return "Shovel";
-	default:
+	}
+	else
+	{
 		return "Error";
-		break;
 	}
 }
 

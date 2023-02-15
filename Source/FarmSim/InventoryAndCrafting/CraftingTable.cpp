@@ -89,7 +89,7 @@ void ACraftingTable::craftItem(URecipeAsset* recipeToCraft, int quantity)
 	{
 		UToolItemAsset* newTool = Cast<UToolItemAsset>(recipeToCraft->itemToMake);
 
-		Cast<AFarmSimCharacter>(playerInv->GetOwner())->changeTool(recipeToCraft->itemToMake->type, newTool);
+		Cast<AFarmSimCharacter>(playerInv->GetOwner())->changeTool(newTool);
 	}
 	else if(recipeToCraft->recipeType != "Building")
 	{
@@ -122,7 +122,7 @@ TMap<URecipeAsset*, int> ACraftingTable::generateCratableAmounts(const FName typ
 		{
 			AFarmSimCharacter* player = Cast<AFarmSimCharacter>(playerInv->GetOwner());
 			UToolItemAsset* newTool = Cast<UToolItemAsset>(id->itemToMake);
-			UToolItemAsset* playerTool = player->grabTool(newTool->type);
+			UToolItemAsset* playerTool = player->grabTool(newTool->toolStatus);
 
 			if (playerTool->toolTier >= newTool->toolTier)
 			{

@@ -12,19 +12,26 @@ void ADestroyablePiece::BeginPlay()
 
 	myInteractComp = Cast<UInteractComponent>(GetComponentByClass(UInteractComponent::StaticClass()));
 
-	switch (toolRequired)
+	FString toolKey;
+	FString toolTypeString;
+
+	toolRequired.GetTagName().ToString().Split(FString("."), &toolKey, &toolTypeString);
+
+	if (toolTypeString == "Axe")
 	{
-	case PlayerToolStatus::AxeOut:
 		toolType = "Axe";
-		break;
-	case PlayerToolStatus::PickaxeOut:
+	}
+	else if (toolTypeString == "Pickaxe")
+	{
 		toolType = "Pickaxe";
-		break;
-	case PlayerToolStatus::ShovelOut:
+	}
+	else if (toolTypeString == "Pickaxe")
+	{
 		toolType = "Shovel";
-		break;
-	default:
-		break;
+	}
+	else
+	{
+		toolType = "Error";
 	}
 }
 
@@ -36,9 +43,9 @@ void ADestroyablePiece::tryHarvest()
 {
 	AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 
-	if (player->getEquippeddTool() == toolRequired)
+	if (player->findTagOfType(player->toolStatusTag).MatchesTagExact(toolRequired))
 	{
-		UToolItemAsset* playerTool = player->grabTool((FName)toolTierToString());
+		UToolItemAsset* playerTool = player->grabTool(toolRequired);
 		if (playerTool->toolTier >= toolTierRequired)
 		{
 			if (myInteractComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
