@@ -15,12 +15,19 @@
  * 
  */
 UCLASS()
-class FARMSIM_API ABaseNPCController : public AAIController
+class FARMSIM_API ABaseNPCController : public AAIController, public IInteractInterface
 {
 	GENERATED_BODY()
-	
+
 public:
 
+	UPROPERTY(BlueprintReadWrite)
+	UBlackboardComponent* myBlackboard;
+
+	bool bShouldCheckForHeadTracking = false;
+
+	UPROPERTY(BlueprintReadWrite)
+	AActor* objectToTrack;
 
 protected:
 	ABaseNPCController();
@@ -29,18 +36,11 @@ protected:
 	ABaseAICharacter* myCharacter;
 	USphereComponent* mySphereComponent;
 
+	int curConversation = 0;
+
 	virtual void BeginPlay() override;
 
 	virtual void Tick(float DeltaTime) override;
-
-
-	bool bShouldCheckForHeadTracking = false;
-
-	UPROPERTY(BlueprintReadWrite)
-	UBlackboardComponent* myBlackboard;
-
-	UPROPERTY(BlueprintReadWrite)
-	AActor* objectToTrack;
 
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

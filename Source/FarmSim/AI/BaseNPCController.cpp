@@ -180,6 +180,7 @@ void ABaseNPCController::findScheduledZone(bool getLastLocation)
 	}
 }
 
+//NPC interacting WITH things
 bool ABaseNPCController::tryInteract()
 {
 	TArray<AActor*> interactables;

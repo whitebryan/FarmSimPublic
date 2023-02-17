@@ -271,5 +271,9 @@ protected:
 	USkeletalMeshComponent* myMainMesh;
 	UFUNCTION(BlueprintImplementableEvent)
 	void reAttachTool(FName socket);
+	UFUNCTION(BlueprintImplementableEvent)
+	void setOtherInvComp(UInventoryComponent* otherInv);
+	UFUNCTION(BlueprintImplementableEvent)
+	void conversationControl(const FString& convoCommand = "Next");
 };
 

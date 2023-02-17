@@ -496,9 +496,9 @@ void AFarmSimCharacter::InteractAction_Implementation()
 {
 	FGameplayTag curStatus = findTagOfType(playerStatusTag);
 
-	if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu")))
+	if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu")))
 	{
-		if (IsValid(interactActorComp) && (interactActorComp->interactionType == "Loot" || interactActorComp->interactionType == "Crafting") && interactActorComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+		if (IsValid(interactActorComp) && interactActorComp->interactionType == "Crafting" && interactActorComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
 		{
 			IInteractInterface::Execute_Interact(interactActorComp);
 
@@ -511,10 +511,11 @@ void AFarmSimCharacter::InteractAction_Implementation()
 			EscMenuAction();
 			return;
 		}
-		else // if player in conversation tag
-		{
-
-		}
+	}
+	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu.Conversation")))
+	{
+		conversationControl();
+		return;
 	}
 
 	if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Fishing")))
@@ -537,14 +538,16 @@ void AFarmSimCharacter::InteractAction_Implementation()
 	}
 	else if (interactActorComp != nullptr)//If we are interacting with something using an interaction component
 	{
-		if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu")) && interactActorComp->interactionType == "Loot")
+		if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu")) && interactActorComp->interactionType == "Loot" && interactActorComp->getStatus())
 		{
+			setOtherInvComp(nullptr);
 			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal"));
 			toggleMenuUI(false, "Inventory", false);
 		}
 		else if (interactActorComp->interactionType == "Loot")
 		{
-			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu"));
+			setOtherInvComp(Cast<UInventoryComponent>(interactActorComp->GetOwner()->GetComponentByClass(UInventoryComponent::StaticClass())));
+			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu"));
 			toggleMenuUI(true, "Inventory", false);
 		}
 		else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Planting")))
@@ -591,6 +594,18 @@ void AFarmSimCharacter::InteractAction_Implementation()
 				curSelectedItemSlot = -2;
 			}
 		}
+		else if(interactActorComp->interactionType == "NPC")
+		{
+			conversationControl("Start");
+			updateInteractPrompt(false);
+			toggleMenuUI(true, "Conversation", false);
+			setPlayerStatus(FGameplayTag::RequestGameplayTag(FName("PlayerStatus.Menu.Conversation")));
+			if (interactActorComp->GetOwner()->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+			{
+				IInteractInterface::Execute_Interact(interactActorComp->GetOwner());
+			}
+			return;
+		}
 
 		if (interactActorComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
 		{
@@ -615,8 +630,13 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 	{
 		return;
 	}
-	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu")))
+	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu")))
 	{
+		return;
+	}
+	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu.Conversation")))
+	{
+		InteractAction();
 		return;
 	}
 
@@ -941,7 +961,7 @@ void AFarmSimCharacter::ScrollItemsAction_Implementation(float Value)
 
 void AFarmSimCharacter::changeEquippedTool_Implementation(FGameplayTag newTool)
 {
-	if (toolUsed || findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu")))
+	if (toolUsed || findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu")))
 	{
 		return;
 	}
@@ -1057,8 +1077,14 @@ void AFarmSimCharacter::EscMenuAction_Implementation()
 	{
 		toggleMenuUI(true, "Settings");
 	}
-	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.In Menu")))
+	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu")))
 	{
+		toggleMenuUI(false);
+	}
+	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu.Conversation")))
+	{
+		conversationControl("End");
+		updateInteractPrompt(true);
 		toggleMenuUI(false);
 	}
 }
@@ -1067,19 +1093,21 @@ void AFarmSimCharacter::EscMenuAction_Implementation()
 //Change current player status and broadcast to all those listening
 void AFarmSimCharacter::setPlayerStatus(FGameplayTag newStatus)
 {
-	if (newStatus.RequestDirectParent().GetTagName().ToString() != "PlayerStatus")
+	if (newStatus.GetTagName().ToString().Contains("PlayerStatus"))
+	{
+		prevPlayerStatus = findTagOfType(playerStatusTag);
+		changeTag(newStatus);
+		PlayerStatusChanged.Broadcast(newStatus);
+
+		if (prevPlayerStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement")) && IsValid(lastHighlighted))
+		{
+			IItemHighlightInterface::Execute_ChangeHighlight(lastHighlighted, false);
+			lastHighlighted = nullptr;
+		}
+	}
+	else
 	{
 		UKismetSystemLibrary::PrintWarning("Only for player status tags");
-	}
-
-	prevPlayerStatus = findTagOfType(playerStatusTag);
-	changeTag(newStatus);
-	PlayerStatusChanged.Broadcast(newStatus);
-
-	if (prevPlayerStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement")) && IsValid(lastHighlighted))
-	{
-		IItemHighlightInterface::Execute_ChangeHighlight(lastHighlighted, false);
-		lastHighlighted = nullptr;
 	}
 }
 
@@ -1370,14 +1398,20 @@ FGameplayTag AFarmSimCharacter::findTagOfType(FGameplayTag parentTag)
 
 void AFarmSimCharacter::changeTag(FGameplayTag newTag)
 {
-	FGameplayTag tagToRemove = findTagOfType(newTag.RequestDirectParent());
-	if (tagToRemove == FGameplayTag::EmptyTag)
+	TArray<FString> tagParts;
+	newTag.GetTagName().ToString().ParseIntoArray(tagParts, TEXT("."));
+	if (tagParts.Num() > 0)
 	{
-		playerTags.AddTag(newTag);
-	}
-	else
-	{
-		playerTags.RemoveTag(tagToRemove, true);
-		playerTags.AddTag(newTag);
+		FGameplayTag tagToRemove = findTagOfType(FGameplayTag::RequestGameplayTag(FName(*tagParts[0])));
+
+		if (tagToRemove == FGameplayTag::EmptyTag)
+		{
+			playerTags.AddTag(newTag);
+		}
+		else
+		{
+			playerTags.RemoveTag(tagToRemove, true);
+			playerTags.AddTag(newTag);
+		}
 	}
 }

@@ -65,5 +65,5 @@ public:
 	void endConversation();
 
 	UFUNCTION(BlueprintCallable)
-	const FConversationTableRow getNextConversationLine();	
+	FConversationTableRow getNextConversationLine();
 };

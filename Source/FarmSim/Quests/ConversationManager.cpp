@@ -38,17 +38,12 @@ void UConversationManager::TickComponent(float DeltaTime, ELevelTick TickType, F
 
 void UConversationManager::startConversation(UConversationAsset* conversationToStart)
 {
-	if (conversationToStart == nullptr)
+	if (conversationToStart == nullptr || conversationToStart->conversationTable == nullptr)
 	{
 		return;
 	}
 
 	curConversation = conversationToStart;
-	AActor* player = Cast<AActor>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
-	if (IsValid(player) && player->GetClass()->ImplementsInterface(UPlayerUIInterface::StaticClass()))
-	{
-		IPlayerUIInterface::Execute_setPlayerUI(player, true, "Conversation", false);
-	}
 }
 
 void UConversationManager::endConversation()
@@ -67,17 +62,21 @@ void UConversationManager::endConversation()
 	}
 }
 
-const FConversationTableRow UConversationManager::getNextConversationLine()
+FConversationTableRow UConversationManager::getNextConversationLine()
 {
-	if(curConversation == nullptr || (lineInCurrentConversation >= curConversation->conversationTable->GetRowNames().Num()))
+	if(curConversation == nullptr)
 	{
+		return FConversationTableRow();
+	}
+	else if (lineInCurrentConversation >= curConversation->conversationTable->GetRowNames().Num())
+	{
+		endConversation();
 		return FConversationTableRow();
 	}
 
 	//check for required quest
-	FString contextString;
 	FName rowName = *FString::FromInt(lineInCurrentConversation);
 	++lineInCurrentConversation;
-	FConversationTableRow result = *curConversation->conversationTable->FindRow<FConversationTableRow>(rowName, contextString);
+	FConversationTableRow result = *curConversation->conversationTable->FindRow<FConversationTableRow>(rowName, " ");
 	return result;
 }

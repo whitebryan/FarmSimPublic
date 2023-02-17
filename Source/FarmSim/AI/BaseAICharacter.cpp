@@ -2,6 +2,7 @@
 
 
 #include "BaseAICharacter.h"
+#include "BaseNPCController.h"
 
 // Sets default values
 ABaseAICharacter::ABaseAICharacter()
@@ -32,3 +33,35 @@ void ABaseAICharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 }
 
+UConversationAsset* ABaseAICharacter::getCurConversation()
+{
+	if (curConversation >= 0 && curConversation < npcConversations.Num())
+	{
+		return npcConversations[curConversation];
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+void ABaseAICharacter::Interact_Implementation()
+{
+	ABaseNPCController* myController = Cast<ABaseNPCController>(GetController());
+	if (IsValid(myController))
+	{
+		bool bIsTalking = myController->myBlackboard->GetValueAsBool("bIsTalking");
+		if (bIsTalking)
+		{
+			myController->myBlackboard->SetValueAsBool("bIsTalking", false);
+			myController->objectToTrack = nullptr;
+			myController->bShouldCheckForHeadTracking = false;
+		}
+		else
+		{
+			myController->myBlackboard->SetValueAsBool("bIsTalking", true);
+			myController->objectToTrack = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+			myController->bShouldCheckForHeadTracking = true;
+		}
+	}
+}

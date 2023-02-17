@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Engine/DataTable.h"
+#include "../Quests/ConversationManager.h"
+#include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractInterface.h"
 #include "BaseAICharacter.generated.h"
 
 
@@ -35,7 +37,7 @@ public:
 };
 
 UCLASS()
-class FARMSIM_API ABaseAICharacter : public ACharacter
+class FARMSIM_API ABaseAICharacter : public ACharacter, public IInteractInterface
 {
 	GENERATED_BODY()
 
@@ -43,9 +45,15 @@ public:
 	// Sets default values for this character's properties
 	ABaseAICharacter();
 
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void Interact(); virtual void Interact_Implementation() override;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	int curConversation = 0;
 
 public:	
 	// Called every frame
@@ -84,4 +92,15 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	bool IsStorming();
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<UConversationAsset*> npcConversations;
+
+	UFUNCTION(BlueprintCallable)
+	void nextConversation() { ++curConversation; }
+	UFUNCTION(BlueprintCallable)
+	UConversationAsset* getCurConversation();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void rotateToFace(AActor* objectToFace);
 };
