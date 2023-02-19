@@ -822,16 +822,16 @@ void AFarmSimCharacter::FishingCastAction_Implementation(bool pressed)
 
 void AFarmSimCharacter::JumpAction_Implementation(bool isJumping)
 {
-	if(!findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal")))
-		return;
-
-	if (isJumping)
+	if (findTagOfType(playerStatusTag).MatchesAnyExact(movementAllowableTags))
 	{
-		Jump();
-	}
-	else
-	{
-		StopJumping();
+		if (isJumping)
+		{
+			Jump();
+		}
+		else
+		{
+			StopJumping();
+		}
 	}
 }
 
@@ -961,13 +961,13 @@ void AFarmSimCharacter::ScrollItemsAction_Implementation(float Value)
 
 void AFarmSimCharacter::changeEquippedTool_Implementation(FGameplayTag newTool)
 {
-	if (toolUsed || findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu")))
+	if (toolUsed || findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu")) || findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement")))
 	{
 		return;
 	}
 
 
-	if(findTagOfType(toolStatusTag).MatchesTagExact(newTool))
+	if(findTagOfType(toolStatusTag).MatchesTagExact(newTool) || newTool.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerToolStatus.No Tool")))
 	{
 		prevToolStatus = findTagOfType(toolStatusTag);
 		changeTag(FGameplayTag::RequestGameplayTag("PlayerToolStatus.No Tool"));
@@ -1043,10 +1043,14 @@ void AFarmSimCharacter::togglePlacementModeAction_Implementation()
 	}
 	else if(findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal")))
 	{
-		changeEquippedTool(FGameplayTag::RequestGameplayTag("PlayerToolStatus.No Tool"));
-		curSelectedItemSlot = myInventoryComp->findNextItemOfType(-2, 1, "Placeable");
-		setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement"));
-		setSelectedItem();
+		int checkForPlaceableSlot = myInventoryComp->findNextItemOfType(-2, 1, "Placeable");
+		if (checkForPlaceableSlot != -1)
+		{
+			changeEquippedTool(FGameplayTag::RequestGameplayTag("PlayerToolStatus.No Tool"));
+			curSelectedItemSlot = checkForPlaceableSlot;
+			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Placement"));
+			setSelectedItem();
+		}
 	}
 }
 
@@ -1270,7 +1274,7 @@ void AFarmSimCharacter::placePlaceable(bool place)
 
 	EPhysicalSurface surfaceHit = UGameplayStatics::GetSurfaceType(RV_Hit);
 
-	if (place && surfaceHit == SurfaceTypeGround)
+	if (place)
 	{
 		//Currenlty only checking the middle, check if the slope is bigger than the maxiumun slope for placeable objects
 		if (UKismetMathLibrary::Abs(RV_Hit.Normal.Y) > maxSlope)
@@ -1280,6 +1284,33 @@ void AFarmSimCharacter::placePlaceable(bool place)
 		}
 		else
 		{
+			//Making sure you can't place through a wall
+			FHitResult RV_HitForward(ForceInit);
+			FCollisionQueryParams RV_TraceParams = FCollisionQueryParams(FName(TEXT("RV_Trace")), false, this);
+			RV_TraceParams.bTraceComplex = true;
+			RV_TraceParams.AddIgnoredActor(this);
+
+
+			FVector startPoint = GetActorLocation();
+
+			FVector endPoint = GetActorLocation() + (GetActorForwardVector() * digDistance);
+			endPoint.X = UKismetMathLibrary::GridSnap_Float(endPoint.X, gridSnap);
+			endPoint.Y = UKismetMathLibrary::GridSnap_Float(endPoint.Y, gridSnap);
+
+			bool hit = GetWorld()->LineTraceSingleByChannel(
+				RV_HitForward,
+				startPoint,
+				endPoint,
+				ECC_Visibility,
+				RV_TraceParams
+			);
+
+			if (RV_HitForward.bBlockingHit)
+			{
+				displayNotification("Area blocked");
+				return;
+			}
+
 			TArray<FName> rowNames = placeablesTable->GetRowNames();
 			FName curItemID = myInventoryComp->getItemAtSlot(curSelectedItemSlot).item->uniqueID;
 			FInvTableItem* itemToPlace = placeablesTable->FindRow<FInvTableItem>(curItemID, FString(""));
@@ -1309,26 +1340,21 @@ void AFarmSimCharacter::placePlaceable(bool place)
 					newRot.Yaw *= -1;
 
 				FActorSpawnParameters myParams;
-				myParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding;
-				AActor* newPlaceable = GetWorld()->SpawnActor<AActor>(itemToPlace->itemBlueprint, FVector(0,0,0), newRot, myParams);
-				newPlaceable->SetActorTickEnabled(true);
-				if (!IsValid(newPlaceable))
-				{
-					displayNotification("Area blocked");
-					return;
-
-				}
-
-
+				myParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 				FVector previewOrigin;
 				FVector previewBounds;
 				placementPreview->GetActorBounds(false, previewOrigin, previewBounds, false);
 
 				FVector placementPoint = RV_Hit.ImpactPoint;
-				placementPoint.Z += previewBounds.Z;
+				placementPoint.Z += previewBounds.Z + 1;
+				AActor* newPlaceable = GetWorld()->SpawnActor<AActor>(itemToPlace->itemBlueprint, placementPoint, newRot, myParams);
+				if (!IsValid(newPlaceable))
+				{
+					displayNotification("Area blocked");
+					return;
+				}
 
-				newPlaceable->SetActorLocation(placementPoint);
-		
+				newPlaceable->SetActorTickEnabled(true);
 
 				myInventoryComp->changeQuantity(curItemID, -1);
 				int amountCheck = myInventoryComp->getItemQuantity(curItemID);
@@ -1366,6 +1392,10 @@ void AFarmSimCharacter::placePlaceable(bool place)
 					myInventoryComp->addNewItem(pickup, true, true);
 
 					RV_Hit.GetActor()->Destroy();
+					if (IsValid(placementPreview))
+					{
+						placementPreview->SetHidden(false);
+					}
 				}
 				break;
 			}
