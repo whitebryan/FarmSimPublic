@@ -596,10 +596,10 @@ void AFarmSimCharacter::InteractAction_Implementation()
 		}
 		else if(interactActorComp->interactionType == "NPC")
 		{
-			conversationControl("Start");
-			updateInteractPrompt(false);
-			toggleMenuUI(true, "Conversation", false);
-			setPlayerStatus(FGameplayTag::RequestGameplayTag(FName("PlayerStatus.Menu.Conversation")));
+			//conversationControl("Start");
+			//updateInteractPrompt(false);
+			//toggleMenuUI(true, "Conversation", false);
+			//setPlayerStatus(FGameplayTag::RequestGameplayTag(FName("PlayerStatus.Menu.Conversation")));
 			if (interactActorComp->GetOwner()->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
 			{
 				IInteractInterface::Execute_Interact(interactActorComp->GetOwner());
@@ -955,7 +955,6 @@ void AFarmSimCharacter::ScrollItemsAction_Implementation(float Value)
 		}
 
 		changeEquippedTool(keys[curTool]);
-		UKismetSystemLibrary::PrintWarning("Scroll tools");
 	}
 }
 

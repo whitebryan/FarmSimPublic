@@ -86,6 +86,9 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnStepCompleted stepCompleted;
 
+	UFUNCTION(BlueprintCallable)
+	bool checkForCompletedQuest(FString questName);
+
 protected:
 
 	virtual void BeginPlay() override;

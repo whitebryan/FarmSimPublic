@@ -55,6 +55,9 @@ protected:
 
 	int curConversation = 0;
 
+	UPROPERTY(EditAnywhere)
+	UConversationAsset* questNeededConversation;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -95,12 +98,19 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<UConversationAsset*> npcConversations;
-
+	UPROPERTY(EditAnywhere, meta = (Tooltip = "Do not loop if the conversation gives a quest you dont want to be repeatable"))
+	bool bShouldLoopAllConversations = false;
+	UPROPERTY(EditAnywhere)
+	bool bShouldLoopLastConversation = true;
 	UFUNCTION(BlueprintCallable)
 	void nextConversation() { ++curConversation; }
 	UFUNCTION(BlueprintCallable)
 	UConversationAsset* getCurConversation();
+	UFUNCTION(BlueprintCallable)
+	void conversationCompleted();
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void rotateToFace(AActor* objectToFace);
+	UFUNCTION(BlueprintImplementableEvent)
+	bool checkForCompletedQuest(const FString& questNeeded);
 };

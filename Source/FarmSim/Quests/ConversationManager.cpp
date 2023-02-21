@@ -3,6 +3,7 @@
 
 #include "ConversationManager.h"
 #include "../Player/PlayerUIInterface.h"
+#include "../AI/BaseAICharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h" 
 
@@ -36,14 +37,16 @@ void UConversationManager::TickComponent(float DeltaTime, ELevelTick TickType, F
 }
 
 
-void UConversationManager::startConversation(UConversationAsset* conversationToStart)
+void UConversationManager::startConversation(UConversationAsset* conversationToStart, AActor* npcToTalkTo)
 {
-	if (conversationToStart == nullptr || conversationToStart->conversationTable == nullptr)
+	if (conversationToStart == nullptr || conversationToStart->conversationTable == nullptr || npcToTalkTo == nullptr)
 	{
 		return;
 	}
 
 	curConversation = conversationToStart;
+	NPCTalking = npcToTalkTo;
+	lineInCurrentConversation = 0;
 }
 
 void UConversationManager::endConversation()
@@ -71,10 +74,10 @@ FConversationTableRow UConversationManager::getNextConversationLine()
 	else if (lineInCurrentConversation >= curConversation->conversationTable->GetRowNames().Num())
 	{
 		endConversation();
+		Cast<ABaseAICharacter>(NPCTalking)->conversationCompleted();
 		return FConversationTableRow();
 	}
 
-	//check for required quest
 	FName rowName = *FString::FromInt(lineInCurrentConversation);
 	++lineInCurrentConversation;
 	FConversationTableRow result = *curConversation->conversationTable->FindRow<FConversationTableRow>(rowName, " ");

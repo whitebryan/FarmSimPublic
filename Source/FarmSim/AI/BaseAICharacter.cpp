@@ -2,6 +2,7 @@
 
 
 #include "BaseAICharacter.h"
+#include "../Player/FarmSimCharacter.h"
 #include "BaseNPCController.h"
 
 // Sets default values
@@ -35,7 +36,20 @@ void ABaseAICharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 UConversationAsset* ABaseAICharacter::getCurConversation()
 {
-	if (curConversation >= 0 && curConversation < npcConversations.Num())
+	if (npcConversations[curConversation]->questRequiredCompleted != nullptr)
+	{
+		bool questCompleted = checkForCompletedQuest(npcConversations[curConversation]->questRequiredCompleted->questName);
+		if (questCompleted)
+		{
+			return npcConversations[curConversation];
+		}
+		else
+		{
+			--curConversation;
+			return questNeededConversation;
+		}
+	}
+	else if (curConversation >= 0 && curConversation < npcConversations.Num())
 	{
 		return npcConversations[curConversation];
 	}
@@ -48,7 +62,7 @@ UConversationAsset* ABaseAICharacter::getCurConversation()
 void ABaseAICharacter::Interact_Implementation()
 {
 	ABaseNPCController* myController = Cast<ABaseNPCController>(GetController());
-	if (IsValid(myController))
+	if (IsValid(myController) && curConversation < npcConversations.Num())
 	{
 		bool bIsTalking = myController->myBlackboard->GetValueAsBool("bIsTalking");
 		if (bIsTalking)
@@ -62,6 +76,29 @@ void ABaseAICharacter::Interact_Implementation()
 			myController->myBlackboard->SetValueAsBool("bIsTalking", true);
 			myController->objectToTrack = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 			myController->bShouldCheckForHeadTracking = true;
+			rotateToFace(myController->objectToTrack);
+			Cast<AFarmSimCharacter>(myController->objectToTrack)->conversationControl("Start");
 		}
+	}
+}
+
+void ABaseAICharacter::conversationCompleted()
+{
+	Interact();
+	if (bShouldLoopAllConversations)
+	{
+		++curConversation;
+		if (curConversation >= npcConversations.Num())
+		{
+			curConversation = 0;
+		}
+	}
+	else if(bShouldLoopLastConversation)
+	{
+		curConversation = FMath::Clamp(++curConversation, 0, npcConversations.Num());
+	}
+	else
+	{
+		++curConversation;
 	}
 }

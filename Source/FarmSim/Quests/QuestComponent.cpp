@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h" 
 #include "GameplayTagsModule.h"
 #include "../InventoryAndCrafting/InventoryComponent.h"
+#include "../Player/FarmSimCharacter.h"
 #include "GameplayTagAssetInterface.h" 
 
 UQuestTrackerComponent::UQuestTrackerComponent()
@@ -129,24 +130,70 @@ void UQuestTrackerComponent::turnInQuestStep(const FString questName)
 	}
 	else if (quests[questName].curStep >= quests[questName].Quest->questSteps.Num())
 	{
-		UKismetSystemLibrary::PrintWarning("Quest done completed");
+		UKismetSystemLibrary::PrintWarning("Quest completed");
 		return;
 	}
 
 	FQuestStepStruct checkProgress = checkRemainingProgress(questName);
 	if (checkProgress.requiredTags.Num() == 0 && checkProgress.restrictedTags.Num() == 0 && checkProgress.turnInItems.Num() == 0)
 	{
+		AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+
 		//remove step or quest specific tags
 		stepCompleted.Broadcast(quests[questName].Quest->questSteps[quests[questName].curStep]);
-		UKismetSystemLibrary::PrintWarning("Step Done");
 		++quests[questName].curStep;
+
+		//Display notifications for step or quest overall rewards
+		FString notification ="null";
 		if (quests[questName].curStep >= quests[questName].Quest->questSteps.Num())
 		{
+			notification = "Quest " + questName + " completed!";
+
+			if (quests[questName].Quest->rewardItems.Num() > 0)
+			{
+				notification += '\n' + "Receieved : ";
+				for (int i = 0; i < quests[questName].Quest->rewardItems.Num(); ++i)
+				{
+					notification += FString::FromInt(quests[questName].Quest->rewardItems[i].quantity) + "x" + quests[questName].Quest->rewardItems[i].item->name.ToString() + " ";
+				}
+			}
 			questCompleted.Broadcast(quests[questName].Quest);
+		}
+
+		if (quests[questName].Quest->questSteps[quests[questName].curStep-1].rewardItems.Num() > 0)
+		{
+			if (notification == "null")
+			{
+				notification = "Quest step " + quests[questName].Quest->questSteps[quests[questName].curStep - 1].stepName + " completed!";
+				notification += '\n' + "Receieved : ";
+			}
+
+			for (int i = 0; i < quests[questName].Quest->questSteps[quests[questName].curStep - 1].rewardItems.Num(); ++i)
+			{
+				notification += FString::FromInt(quests[questName].Quest->questSteps[quests[questName].curStep - 1].rewardItems[i].quantity) + "x" + quests[questName].Quest->questSteps[quests[questName].curStep - 1].rewardItems[i].item->name.ToString() + " ";
+			}
+		}
+
+		if (notification != "null")
+		{
+			player->displayNotification(notification, 3);
 		}
 	}
 	else
 	{
+		//make notifcation saying whats needed
 		UKismetSystemLibrary::PrintWarning("Not Done");
+	}
+}
+
+bool UQuestTrackerComponent::checkForCompletedQuest(FString questName)
+{
+	if (quests.Contains(questName) && quests[questName].curStep >= quests[questName].Quest->questSteps.Num())
+	{
+		return true;
+	}
+	else
+	{
+		return false;
 	}
 }

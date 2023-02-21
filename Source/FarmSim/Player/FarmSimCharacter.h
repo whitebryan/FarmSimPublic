@@ -179,6 +179,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FGameplayTag findTagOfType(FGameplayTag parentTag);
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void conversationControl(const FString& convoCommand = "Next");
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -273,7 +276,6 @@ protected:
 	void reAttachTool(FName socket);
 	UFUNCTION(BlueprintImplementableEvent)
 	void setOtherInvComp(UInventoryComponent* otherInv);
-	UFUNCTION(BlueprintImplementableEvent)
-	void conversationControl(const FString& convoCommand = "Next");
+
 };
 

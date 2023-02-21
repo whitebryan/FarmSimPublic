@@ -48,18 +48,18 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
-
 	int lineInCurrentConversation = 0;
 
 	UConversationAsset* curConversation;
+
+	AActor* NPCTalking = nullptr;
 
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION(BlueprintCallable)
-	void startConversation(UConversationAsset* conversationToStart);
+	void startConversation(UConversationAsset* conversationToStart, AActor* npcToTalkTo);
 
 	UFUNCTION(BlueprintCallable)
 	void endConversation();
