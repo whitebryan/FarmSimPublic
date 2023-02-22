@@ -8,6 +8,8 @@
 #include "Farming/GrowthPlot.h"
 #include "InventoryAndCrafting/DestroyablePiece.h"
 #include "InventoryAndCrafting/ConstructableBuilding.h"
+#include "AI/BaseAICharacter.h"
+#include "QuestComponent.h"
 #include "Player/FarmSimCharacter.h"
 
 
@@ -120,9 +122,9 @@ void UPlayerSaveManagerComponent::LoadGame(const FString& slot)
 		curPlayer->currentTools = playerSaveGame->currentTools;
 
 		//Rebuilding buildings
-		TArray<AActor*> buildings;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AConstructableBuilding::StaticClass(), buildings);
-		for (AActor* curActor : buildings)
+		TArray<AActor*> foundActors;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AConstructableBuilding::StaticClass(), foundActors);
+		for (AActor* curActor : foundActors)
 		{
 			AConstructableBuilding* curBuilding = Cast<AConstructableBuilding>(curActor);
 
@@ -134,12 +136,11 @@ void UPlayerSaveManagerComponent::LoadGame(const FString& slot)
 
 
 		//Rebreaking pieces
-		TArray<AActor*> breakablePieces;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ADestroyablePiece::StaticClass(), breakablePieces);
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ADestroyablePiece::StaticClass(), foundActors);
 
 		for (FVector curLoc : brokenPieces)
 		{
-			for (AActor* curActor : breakablePieces)
+			for (AActor* curActor : foundActors)
 			{
 				if (brokenPieces.Contains(curActor->GetActorLocation()))
 				{
@@ -147,6 +148,29 @@ void UPlayerSaveManagerComponent::LoadGame(const FString& slot)
 				}
 			}
 		}
+
+		//Reloading quest status
+		UGameplayStatics::GetAllActorsWithTag(GetWorld(), "WorldManager", foundActors);
+		if (foundActors.Num() > 0)
+		{
+			UQuestTrackerComponent* worldManagerQuestTracker = Cast<UQuestTrackerComponent>(foundActors[0]->GetComponentByClass(UQuestTrackerComponent::StaticClass()));
+			worldManagerQuestTracker->loadQuests(playerSaveGame->playerQuests);
+		}
+
+		//Reloading npc cur convos
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABaseAICharacter::StaticClass(), foundActors);
+		for (AActor* curActor : foundActors)
+		{
+			ABaseAICharacter* curNPC = Cast<ABaseAICharacter>(curActor);
+			if (IsValid(curNPC))
+			{
+				if (playerSaveGame->npcConversations.Contains(curNPC->npcName))
+				{
+					curNPC->loadCurConvo(playerSaveGame->npcConversations[curNPC->npcName]);
+				}
+			}
+		}
+
 
 		loadFinished.Broadcast(true);
 	}
@@ -530,4 +554,18 @@ void UPlayerSaveManagerComponent::addClothingPiece(UModularClothingAsset* pieceT
 	newClothesStruct.pieceColor = color;
 
 	playerClothes.Add(pieceToAdd->category, newClothesStruct);
+}
+
+
+void UPlayerSaveManagerComponent::saveNPCConversationStatus(FString npcName, int curConvo)
+{
+	playerSaveGame->npcConversations.Add(npcName, curConvo);
+	UGameplayStatics::AsyncSaveGameToSlot(playerSaveGame, "Slot1", 0);
+}
+
+
+void UPlayerSaveManagerComponent::saveQuestStatus(FQuest quest)
+{
+	playerSaveGame->playerQuests.Add(quest.Quest->questName, quest);
+	UGameplayStatics::AsyncSaveGameToSlot(playerSaveGame, "Slot1", 0);
 }

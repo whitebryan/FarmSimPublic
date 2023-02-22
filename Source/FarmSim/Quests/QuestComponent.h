@@ -61,6 +61,8 @@ public:
 	UQuestAsset* Quest;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int curStep = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName questGiverName = "none";
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStepCompleted, const FQuestStepStruct&, step);
@@ -89,12 +91,17 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool checkForCompletedQuest(FString questName);
 
+	UFUNCTION(BlueprintCallable)
+	const FQuest getQuestStatus(const FString& questName);
+
+	void loadQuests(const TMap<FString, FQuest> loadedQuests) { quests = loadedQuests; }
+
 protected:
 
 	virtual void BeginPlay() override;
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TMap<FString, FQuest> quests;
 };

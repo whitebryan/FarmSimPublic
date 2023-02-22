@@ -157,4 +157,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void addClothingPiece(UModularClothingAsset* pieceToAdd, FLinearColor color);
+
+	UFUNCTION(BlueprintCallable)
+	void saveNPCConversationStatus(FString npcName, int curConvo);
+
+	UFUNCTION(BlueprintCallable)
+	void saveQuestStatus(FQuest quest);
 };

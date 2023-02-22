@@ -9,6 +9,7 @@
 #include "InventoryAndCrafting/InventoryItem.h"
 #include "Farming/BasePlant.h"
 #include "DLSSLibrary.h"
+#include "Quests/QuestComponent.h"
 #include "PlayerSaveGame.generated.h"
 
 USTRUCT(Blueprintable, BlueprintType)
@@ -141,4 +142,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	FLinearColor skinColor;
+
+	UPROPERTY(BlueprintReadOnly)
+	TMap<FString, int> npcConversations;
+	UPROPERTY(BlueprintReadOnly)
+	TMap<FString, FQuest> playerQuests;
+
 };

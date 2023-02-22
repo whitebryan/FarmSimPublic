@@ -28,6 +28,12 @@ void UQuestTrackerComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 void UQuestTrackerComponent::startQuest(const FQuest& newQuest)
 {
 	quests.Add(newQuest.Quest->questName, newQuest);
+
+	AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+
+	UPlayerSaveManagerComponent* playerSaveManager = Cast<UPlayerSaveManagerComponent>(player->GetComponentByClass(UPlayerSaveManagerComponent::StaticClass()));
+
+	playerSaveManager->saveQuestStatus(newQuest);
 }
 
 FQuestStepStruct UQuestTrackerComponent::checkRemainingProgress(const FString questName)
@@ -139,9 +145,12 @@ void UQuestTrackerComponent::turnInQuestStep(const FString questName)
 	{
 		AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 
+		UPlayerSaveManagerComponent* playerSaveManager = Cast<UPlayerSaveManagerComponent>(player->GetComponentByClass(UPlayerSaveManagerComponent::StaticClass()));
+
 		//remove step or quest specific tags
 		stepCompleted.Broadcast(quests[questName].Quest->questSteps[quests[questName].curStep]);
 		++quests[questName].curStep;
+		playerSaveManager->saveQuestStatus(quests[questName]);
 
 		//Display notifications for step or quest overall rewards
 		FString notification ="null";
@@ -195,5 +204,17 @@ bool UQuestTrackerComponent::checkForCompletedQuest(FString questName)
 	else
 	{
 		return false;
+	}
+}
+
+const FQuest UQuestTrackerComponent::getQuestStatus(const FString& questName)
+{
+	if (quests.Contains(questName))
+	{
+		return quests[questName];
+	}
+	else
+	{
+		return FQuest();
 	}
 }

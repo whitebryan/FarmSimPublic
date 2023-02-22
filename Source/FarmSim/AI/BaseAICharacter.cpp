@@ -101,4 +101,8 @@ void ABaseAICharacter::conversationCompleted()
 	{
 		++curConversation;
 	}
+
+	AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+	UPlayerSaveManagerComponent* playerSaveManager = Cast<UPlayerSaveManagerComponent>(player->GetComponentByClass(UPlayerSaveManagerComponent::StaticClass()));
+	playerSaveManager->saveNPCConversationStatus(npcName, curConversation);
 }

@@ -58,12 +58,17 @@ protected:
 	UPROPERTY(EditAnywhere)
 	UConversationAsset* questNeededConversation;
 
+
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	UPROPERTY(EditAnywhere)
+	FString npcName = "BaseNPC";
 
 	UPROPERTY(BlueprintReadOnly)
 	bool bShouldHeadTrack = false;
@@ -81,7 +86,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FName> interactionTypes;
 
-
+	void loadCurConvo(int cur) { curConversation = cur; }
 
 	//Functions to talk to BP day/night system and weather system
 	UFUNCTION(BlueprintImplementableEvent)
