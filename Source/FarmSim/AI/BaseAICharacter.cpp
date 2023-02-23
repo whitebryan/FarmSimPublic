@@ -3,6 +3,7 @@
 
 #include "BaseAICharacter.h"
 #include "../Player/FarmSimCharacter.h"
+#include "QuestComponent.h"
 #include "BaseNPCController.h"
 
 // Sets default values
@@ -17,14 +18,12 @@ ABaseAICharacter::ABaseAICharacter()
 void ABaseAICharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
 void ABaseAICharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 // Called to bind functionality to input
@@ -38,15 +37,33 @@ UConversationAsset* ABaseAICharacter::getCurConversation()
 {
 	if (npcConversations[curConversation]->questRequiredCompleted != nullptr)
 	{
-		bool questCompleted = checkForCompletedQuest(npcConversations[curConversation]->questRequiredCompleted->questName);
-		if (questCompleted)
+		TArray<AActor*> foundActors;
+		UGameplayStatics::GetAllActorsWithTag(GetWorld(), "WorldManager", foundActors);
+		if (foundActors.Num() > 0)
 		{
-			return npcConversations[curConversation];
+			UQuestTrackerComponent* questTracker = Cast<UQuestTrackerComponent>(foundActors[0]->GetComponentByClass(UQuestTrackerComponent::StaticClass()));
+
+			bool turnInStep = questTracker->turnInQuestStep(npcConversations[curConversation]->questRequiredCompleted->questName);
+
+			if (questTracker->checkForCompletedQuest(npcConversations[curConversation]->questRequiredCompleted->questName))
+			{
+				return npcConversations[curConversation];
+			}
+			else if(turnInStep)
+			{	
+				int curStep = questTracker->getCurStep(npcConversations[curConversation]->questRequiredCompleted->questName);
+
+				return npcConversations[curConversation]->questRequiredCompleted->questSteps[curStep-1].stepCompleted;
+			}
+			else
+			{
+				--curConversation;
+				return stepNeededConversation;
+			}
 		}
 		else
 		{
-			--curConversation;
-			return questNeededConversation;
+			return nullptr;
 		}
 	}
 	else if (curConversation >= 0 && curConversation < npcConversations.Num())
@@ -95,7 +112,7 @@ void ABaseAICharacter::conversationCompleted()
 	}
 	else if(bShouldLoopLastConversation)
 	{
-		curConversation = FMath::Clamp(++curConversation, 0, npcConversations.Num());
+		curConversation = FMath::Clamp(++curConversation, 0, npcConversations.Num()-1);
 	}
 	else
 	{

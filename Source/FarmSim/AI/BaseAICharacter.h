@@ -55,10 +55,11 @@ protected:
 
 	int curConversation = 0;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Conversation")
 	UConversationAsset* questNeededConversation;
 
-
+	UPROPERTY(EditAnywhere, Category = "Conversation")
+	UConversationAsset* stepNeededConversation;
 
 public:	
 	// Called every frame
@@ -67,7 +68,7 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Conversation")
 	FString npcName = "BaseNPC";
 
 	UPROPERTY(BlueprintReadOnly)
@@ -101,11 +102,11 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
 	bool IsStorming();
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Conversation")
 	TArray<UConversationAsset*> npcConversations;
-	UPROPERTY(EditAnywhere, meta = (Tooltip = "Do not loop if the conversation gives a quest you dont want to be repeatable"))
+	UPROPERTY(EditAnywhere, Category = "Conversation", meta = (Tooltip = "Do not loop if the conversation gives a quest you dont want to be repeatable"))
 	bool bShouldLoopAllConversations = false;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Conversation")
 	bool bShouldLoopLastConversation = true;
 	UFUNCTION(BlueprintCallable)
 	void nextConversation() { ++curConversation; }
@@ -116,6 +117,4 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void rotateToFace(AActor* objectToFace);
-	UFUNCTION(BlueprintImplementableEvent)
-	bool checkForCompletedQuest(const FString& questNeeded);
 };

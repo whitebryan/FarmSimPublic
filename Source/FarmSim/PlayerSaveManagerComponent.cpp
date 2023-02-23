@@ -73,6 +73,7 @@ void UPlayerSaveManagerComponent::saveGame(const FString& slot)
 
 		saveChests();
 		saveActors();
+		savePlayerQuestTags();
 		playerSaveGame->autoSaveTime = autoSaveTime;
 		playerSaveGame->knownRecipes = learnedRecipes;
 		playerSaveGame->currentTools = curPlayer->currentTools;
@@ -171,6 +172,11 @@ void UPlayerSaveManagerComponent::LoadGame(const FString& slot)
 			}
 		}
 
+		//Readding quest specific tags
+		for (int i = 0; i < playerSaveGame->playerTags.Num(); ++i)
+		{
+			curPlayer->playerTags.AddTag(playerSaveGame->playerTags.GetByIndex(i));
+		}
 
 		loadFinished.Broadcast(true);
 	}
@@ -567,5 +573,21 @@ void UPlayerSaveManagerComponent::saveNPCConversationStatus(FString npcName, int
 void UPlayerSaveManagerComponent::saveQuestStatus(FQuest quest)
 {
 	playerSaveGame->playerQuests.Add(quest.Quest->questName, quest);
+	UGameplayStatics::AsyncSaveGameToSlot(playerSaveGame, "Slot1", 0);
+}
+
+void UPlayerSaveManagerComponent::savePlayerQuestTags()
+{
+	AFarmSimCharacter* curPlayer = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+
+	for (int i = 0; i < curPlayer->playerTags.Num(); ++i)
+	{
+		FGameplayTag curTag = curPlayer->playerTags.GetByIndex(i);
+		if (curTag.GetTagName().ToString().Contains("Quest"))
+		{
+			playerSaveGame->playerTags.AddTag(curTag);
+		}
+	}
+
 	UGameplayStatics::AsyncSaveGameToSlot(playerSaveGame, "Slot1", 0);
 }

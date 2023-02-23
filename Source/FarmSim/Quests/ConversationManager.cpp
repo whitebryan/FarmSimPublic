@@ -73,8 +73,13 @@ FConversationTableRow UConversationManager::getNextConversationLine()
 	}
 	else if (lineInCurrentConversation >= curConversation->conversationTable->GetRowNames().Num())
 	{
+
+		if (!curConversation->bIsFiller)
+		{
+			Cast<ABaseAICharacter>(NPCTalking)->conversationCompleted();
+		}
+
 		endConversation();
-		Cast<ABaseAICharacter>(NPCTalking)->conversationCompleted();
 		return FConversationTableRow();
 	}
 

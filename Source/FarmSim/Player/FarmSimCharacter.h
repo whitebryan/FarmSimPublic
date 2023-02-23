@@ -49,7 +49,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Config, Category=Input)
 	float TurnRate = 1.25f;
 
 	UPROPERTY(BlueprintReadWrite)
@@ -181,6 +181,16 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void conversationControl(const FString& convoCommand = "Next");
+
+	UFUNCTION(BlueprintCallable)
+	void setSensitivity(float newSensPercent);
+	UFUNCTION(BlueprintCallable)
+	float getSensitivity();
+
+	UFUNCTION(BlueprintCallable)
+	void setFOV(int newFOV);
+	UFUNCTION(BlueprintCallable)
+	int getFOV();
 
 protected:
 	virtual void BeginPlay() override;

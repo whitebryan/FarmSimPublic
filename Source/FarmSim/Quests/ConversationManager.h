@@ -4,37 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "QuestAndConvoStructs.h"
 #include "Runtime/Engine/Classes/Engine/DataTable.h"
-#include "QuestComponent.h"
 #include "ConversationManager.generated.h"
 
-USTRUCT(BlueprintType, Blueprintable)
-struct FConversationTableRow : public FTableRowBase
-{
-	 GENERATED_USTRUCT_BODY()
-
- public:
-	 UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	 FName speaker = "Null";
-	 UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	 FString line = "None";
-	 UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	 FName animation = "None";
-	 UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	 UQuestAsset* questToGive;
-};
-
-UCLASS(BlueprintType, Blueprintable)
-class FARMSIM_API UConversationAsset : public UDataAsset
-{
-	GENERATED_BODY()
-
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UQuestAsset* questRequiredCompleted;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UDataTable* conversationTable;
-};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FARMSIM_API UConversationManager : public UActorComponent

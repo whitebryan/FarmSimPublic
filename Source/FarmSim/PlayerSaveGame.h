@@ -82,10 +82,6 @@ class FARMSIM_API UPlayerSaveGame : public USaveGame
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TMap<FName, FKey> inputMap;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	float playerSensitivity = 1.25;
-
-
 
 	UPROPERTY()
 	TArray<FInvItem> playerInventory;
@@ -148,4 +144,6 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	TMap<FString, FQuest> playerQuests;
 
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayTagContainer playerTags;
 };

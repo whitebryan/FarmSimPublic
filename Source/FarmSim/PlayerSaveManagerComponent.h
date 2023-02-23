@@ -163,4 +163,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void saveQuestStatus(FQuest quest);
+
+	UFUNCTION()
+	void savePlayerQuestTags();
 };

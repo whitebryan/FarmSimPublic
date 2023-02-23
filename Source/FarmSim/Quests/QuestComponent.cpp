@@ -127,29 +127,30 @@ FQuestStepStruct UQuestTrackerComponent::checkRemainingProgress(const FString qu
 	return result;
 }
 
-void UQuestTrackerComponent::turnInQuestStep(const FString questName)
+bool UQuestTrackerComponent::turnInQuestStep(const FString& questName)
 {
 	if (!quests.Contains(questName))
 	{
 		UKismetSystemLibrary::PrintWarning("No Quest");
-		return;
+		return false;
 	}
 	else if (quests[questName].curStep >= quests[questName].Quest->questSteps.Num())
 	{
 		UKismetSystemLibrary::PrintWarning("Quest completed");
-		return;
+		return true;
 	}
 
 	FQuestStepStruct checkProgress = checkRemainingProgress(questName);
-	if (checkProgress.requiredTags.Num() == 0 && checkProgress.restrictedTags.Num() == 0 && checkProgress.turnInItems.Num() == 0)
+	if (checkProgress.requiredTags.Num() == 0 && checkProgress.restrictedTags.Num() == 0 && checkProgress.turnInItems.Num() == 0)//checking wrong step
 	{
 		AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 
 		UPlayerSaveManagerComponent* playerSaveManager = Cast<UPlayerSaveManagerComponent>(player->GetComponentByClass(UPlayerSaveManagerComponent::StaticClass()));
 
 		//remove step or quest specific tags
-		stepCompleted.Broadcast(quests[questName].Quest->questSteps[quests[questName].curStep]);
+		stepCompleted.Broadcast(quests[questName].Quest->questSteps[quests[questName].curStep], questName);
 		++quests[questName].curStep;
+		UKismetSystemLibrary::PrintWarning("Cur step up");
 		playerSaveManager->saveQuestStatus(quests[questName]);
 
 		//Display notifications for step or quest overall rewards
@@ -166,6 +167,19 @@ void UQuestTrackerComponent::turnInQuestStep(const FString questName)
 					notification += FString::FromInt(quests[questName].Quest->rewardItems[i].quantity) + "x" + quests[questName].Quest->rewardItems[i].item->name.ToString() + " ";
 				}
 			}
+
+			//removing quest specific tags
+			FGameplayTagContainer tagsToRemove;
+			for (int i = 0; i < player->playerTags.Num(); ++i)
+			{
+				FGameplayTag curTag = player->playerTags.GetByIndex(i);
+				if (curTag.GetTagName().ToString().Contains(questName))
+				{
+					tagsToRemove.AddTag(curTag);
+				}
+			}
+			player->playerTags.RemoveTags(tagsToRemove);
+
 			questCompleted.Broadcast(quests[questName].Quest);
 		}
 
@@ -187,15 +201,31 @@ void UQuestTrackerComponent::turnInQuestStep(const FString questName)
 		{
 			player->displayNotification(notification, 3);
 		}
+
+		playerSaveManager->saveQuestStatus(quests[questName]);
+		return true;
 	}
 	else
 	{
 		//make notifcation saying whats needed
 		UKismetSystemLibrary::PrintWarning("Not Done");
+		return false;
 	}
 }
 
-bool UQuestTrackerComponent::checkForCompletedQuest(FString questName)
+int UQuestTrackerComponent::getCurStep(const FString& questName)
+{
+	if (quests.Contains(questName))
+	{
+		return quests[questName].curStep;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+bool UQuestTrackerComponent::checkForCompletedQuest(const FString& questName)
 {
 	if (quests.Contains(questName) && quests[questName].curStep >= quests[questName].Quest->questSteps.Num())
 	{

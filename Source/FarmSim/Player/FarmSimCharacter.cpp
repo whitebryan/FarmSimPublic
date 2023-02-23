@@ -88,6 +88,12 @@ void AFarmSimCharacter::BeginPlay()
 	locationTag = FGameplayTag::RequestGameplayTag("Location");
 	playerStatusTag = FGameplayTag::RequestGameplayTag("PlayerStatus");
 	toolStatusTag = FGameplayTag::RequestGameplayTag("PlayerToolStatus");
+
+	float curSens = getSensitivity();
+	setSensitivity(curSens);
+
+	int FOV = getFOV();
+	setFOV(FOV);
 }
 
 //
@@ -398,6 +404,35 @@ void AFarmSimCharacter::Tick(float DeltaTime)
 
 //////////////////////////////////////////////////////////////////////////
 // Input
+void AFarmSimCharacter::setFOV(int newFOV)
+{
+	FollowCamera->SetFieldOfView(FMath::Clamp(newFOV, 30, 130));
+	GConfig->SetInt(TEXT("/Script/FarmSim.AFarmSimCharacter"), TEXT("FOV"), newFOV, GGameIni);
+	GConfig->Flush(false, GGameIni);
+}
+
+int AFarmSimCharacter::getFOV()
+{
+	int FOV;
+	GConfig->GetInt(TEXT("/Script/FarmSim.AFarmSimCharacter"), TEXT("FOV"), FOV, GGameIni);
+	return FOV;
+}
+
+
+void AFarmSimCharacter::setSensitivity(float newSensPercent)
+{
+	TurnRate = UKismetMathLibrary::FClamp((1.25 * newSensPercent), 0.1f, 2.0f);
+	GConfig->SetFloat(TEXT("/Script/FarmSim.AFarmSimCharacter"), TEXT("TurnRate"), TurnRate, GGameIni);
+	GConfig->Flush(false, GGameIni);
+}
+
+float AFarmSimCharacter::getSensitivity()
+{
+	float curSens;
+	GConfig->GetFloat(TEXT("/Script/FarmSim.AFarmSimCharacter"), TEXT("TurnRate"), curSens, GGameIni);
+	return curSens;
+}
+
 void AFarmSimCharacter::CameraUpAction_Implementation(float Rate)
 {
 	//if (curPlayerStatus != PlayerStatus::NormalState && curPlayerStatus != PlayerStatus::Fishing && curPlayerStatus != PlayerStatus::FishingCasting && curPlayerStatus != PlayerStatus::Placement)
