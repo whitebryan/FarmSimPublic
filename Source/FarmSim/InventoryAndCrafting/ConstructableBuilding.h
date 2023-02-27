@@ -40,6 +40,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsBuilt = false;
 
+	UPROPERTY(EditAnywhere)
+	TArray<AActor*> actorsToDestroyOnBuilt;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

@@ -25,6 +25,10 @@ void AHarvestable::BeginPlay()
 		meshComponent->SetStaticMesh(itemToHarvest->harvestableModel);
 		toolType = FName(*toolTypeToString());
 	}
+	else
+	{
+		Destroy();
+	}
 }
 
 void AHarvestable::initHarvestable(float newTime)
@@ -54,19 +58,22 @@ void AHarvestable::Tick(float DeltaTime)
 void AHarvestable::tryHarvest() //Check if the players tool is able to harvest then harvest add to their inventory and respawn if set to respawn
 {
 	AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
-	if (player->findTagOfType(player->toolStatusTag).MatchesTagExact(itemToHarvest->requiredToolStatus) || !itemToHarvest->requiresTool)
+	if (!itemToHarvest->requiresTool || player->findTagOfType(player->toolStatusTag).MatchesTagExact(itemToHarvest->requiredToolStatus))
 	{
 		UToolItemAsset* playerTool = player->grabTool(itemToHarvest->requiredToolStatus);
-		if (playerTool->type == toolType || !itemToHarvest->requiresTool)
+		if (!itemToHarvest->requiresTool || playerTool->type == toolType)
 		{
-			if (playerTool->toolTier >= itemToHarvest->toolLevel || !itemToHarvest->requiresTool)
+			if (!itemToHarvest->requiresTool || playerTool->toolTier >= itemToHarvest->toolLevel)
 			{
-				if (myInteractComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+				if (bShouldMoveInteractee && myInteractComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
 				{
 					myInteractComp->Execute_moveActorIntoPlace(myInteractComp, Cast<AActor>(player));
 				}
 
-				Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0))->toolUsed = true;
+				if (itemToHarvest->requiresTool)
+				{
+					Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0))->toolUsed = true;
+				}
 
 				UInventoryComponent* playerInvComp = Cast<UInventoryComponent>(player->GetComponentByClass(UInventoryComponent::StaticClass()));
 
@@ -88,7 +95,7 @@ void AHarvestable::tryHarvest() //Check if the players tool is able to harvest t
 
 					if (!harvested.addStatus)
 					{
-						player->displayNotification("Inventory full", 2);
+						player->displayNotification("Inventory full", 1);
 						return;
 					}
 					else
@@ -105,12 +112,12 @@ void AHarvestable::tryHarvest() //Check if the players tool is able to harvest t
 						if (!itemToHarvest->respawnAble)
 						{
 							Destroy();
-							player->displayNotification(returnMessage, 2);
+							player->displayNotification(returnMessage, 1);
 							return;
 						}
 						else
 						{
-							player->displayNotification(returnMessage, 2);
+							player->displayNotification(returnMessage, 1);
 							return;
 						}
 					}
@@ -120,20 +127,20 @@ void AHarvestable::tryHarvest() //Check if the players tool is able to harvest t
 			{
 				FString returnMessage = "You require a ";
 				returnMessage += toolTierToString() + " tier tool to harvest this";
-				player->displayNotification(returnMessage, 2);
+				player->displayNotification(returnMessage, 1);
 				return;
 			}
 		}
 		else
 		{
 			FString returnMessage = "This requires a " + toolTypeToString() + " to harvest";
-			player->displayNotification(returnMessage, 2);
+			player->displayNotification(returnMessage, 1);
 		}
 	}
 	else
 	{
 		FString returnMessage = "This requires a " + toolTypeToString() + " to harvest";
-		player->displayNotification(returnMessage, 2);
+		player->displayNotification(returnMessage, 1);
 	}
 }
 

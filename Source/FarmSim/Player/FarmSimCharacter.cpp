@@ -631,10 +631,6 @@ void AFarmSimCharacter::InteractAction_Implementation()
 		}
 		else if(interactActorComp->interactionType == "NPC")
 		{
-			//conversationControl("Start");
-			//updateInteractPrompt(false);
-			//toggleMenuUI(true, "Conversation", false);
-			//setPlayerStatus(FGameplayTag::RequestGameplayTag(FName("PlayerStatus.Menu.Conversation")));
 			if (interactActorComp->GetOwner()->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
 			{
 				IInteractInterface::Execute_Interact(interactActorComp->GetOwner());

@@ -28,13 +28,9 @@ void AConstructableBuilding::BeginPlay()
 	builtMats.Add(0, myMesh->GetMaterial(0));
 	myDynamicMat = myMesh->CreateDynamicMaterialInstance(0, sourceMat);
 
-	for (int i = 0; i < myMesh->GetNumMaterials(); ++i)
+	for (int i = 1; i < myMesh->GetNumMaterials(); ++i)
 	{
-		if (i != 0)
-		{
-			builtMats.Add(i, myMesh->GetMaterial(i));
-		}
-
+		builtMats.Add(i, myMesh->GetMaterial(i));
 		myMesh->SetMaterial(i, myDynamicMat);
 	}
 
@@ -147,9 +143,14 @@ void AConstructableBuilding::changeStatus(bool bNewStatus)
 		
 		TArray<int> keys;
 		builtMats.GetKeys(keys);
-		for (int i = 1; i < keys.Num(); ++i)
+		for (int i = 0; i < keys.Num(); ++i)
 		{
 			myMesh->SetMaterial(i, builtMats[i]);
+		}
+
+		for (int i = 0; i < actorsToDestroyOnBuilt.Num(); ++i)
+		{
+			actorsToDestroyOnBuilt[i]->Destroy();
 		}
 
 		forceHideUI();

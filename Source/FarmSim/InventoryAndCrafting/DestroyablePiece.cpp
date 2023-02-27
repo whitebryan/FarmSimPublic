@@ -61,14 +61,14 @@ void ADestroyablePiece::tryHarvest()
 		else
 		{
 			FString returnMessage = "You require a ";
-			returnMessage += toolTierToString() + " tier tool to harvest this";
+			returnMessage += toolTierToString() + " tier tool to destroy this";
 			player->displayNotification(returnMessage, 2);
 			return;
 		}
 	}
 	else
 	{
-		FString returnMessage = "his requires a " + toolType + " to harvest";
+		FString returnMessage = "his requires a " + toolType + " to destroy";
 		player->displayNotification(returnMessage, 2);
 	}
 }

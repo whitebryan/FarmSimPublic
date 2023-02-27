@@ -37,6 +37,8 @@ protected:
 	UStaticMeshComponent* meshComponent;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float harvestedMeshChangeDelay = 1.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool bShouldMoveInteractee = true;
 
 	UPROPERTY(BlueprintReadOnly)
 	float respawnTimer = 0;
