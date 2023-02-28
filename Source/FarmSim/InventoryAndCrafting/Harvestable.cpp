@@ -25,10 +25,6 @@ void AHarvestable::BeginPlay()
 		meshComponent->SetStaticMesh(itemToHarvest->harvestableModel);
 		toolType = FName(*toolTypeToString());
 	}
-	else
-	{
-		Destroy();
-	}
 }
 
 void AHarvestable::initHarvestable(float newTime)

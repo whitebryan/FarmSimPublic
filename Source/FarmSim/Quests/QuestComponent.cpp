@@ -27,6 +27,11 @@ void UQuestTrackerComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void UQuestTrackerComponent::startQuest(const FQuest& newQuest)
 {
+	if (quests.Contains(newQuest.Quest->questName))
+	{
+		return;
+	}
+
 	quests.Add(newQuest.Quest->questName, newQuest);
 
 	AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));

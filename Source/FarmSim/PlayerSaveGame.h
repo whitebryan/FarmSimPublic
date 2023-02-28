@@ -85,7 +85,7 @@ public:
 
 	UPROPERTY()
 	TArray<FInvItem> playerInventory;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Inventory")
+	UPROPERTY(BlueprintReadOnly, Category = "Player Inventory")
 	int numRows = 1;
 
 	UPROPERTY()

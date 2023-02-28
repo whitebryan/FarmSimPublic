@@ -25,6 +25,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "Items given as reward for step completion"))
 	TArray<FInvItem> rewardItems;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "Tags added for completing this step"))
+	FGameplayTagContainer completionTags;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "Tags required for step completion"))
 	FGameplayTagContainer requiredTags;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "Tag that restrict step completion"))

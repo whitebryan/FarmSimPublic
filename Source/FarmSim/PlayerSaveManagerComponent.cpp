@@ -68,7 +68,10 @@ void UPlayerSaveManagerComponent::saveGame(const FString& slot)
 		if (IsValid(curPlayer))
 		{
 			playerSaveGame->playerInventory = curPlayer->myInventoryComp->getInventory();
-			playerSaveGame->numRows = curPlayer->myInventoryComp->getRows();
+			playerSaveGame->numRows = curPlayer->myInventoryComp->getRows() - 1;
+
+			UKismetSystemLibrary::PrintWarning("Valid player");
+			UKismetSystemLibrary::PrintWarning(FString::FromInt(playerSaveGame->numRows));
 		}
 
 		saveChests();
@@ -94,24 +97,36 @@ void UPlayerSaveManagerComponent::LoadGame(const FString& slot)
 {
 	if (UGameplayStatics::DoesSaveGameExist(slot, 0))
 	{
+		playerSaveGame = Cast<UPlayerSaveGame>(UGameplayStatics::LoadGameFromSlot("Slot1", 0));
+
 		AFarmSimCharacter* curPlayer = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 		//Loading palyer inventory
 		if (IsValid(curPlayer))
 		{
-			curPlayer->myInventoryComp->loadInventory(playerSaveGame->playerInventory, playerSaveGame->numRows - 1);
+			UKismetSystemLibrary::PrintWarning("Valid player");
+			UKismetSystemLibrary::PrintWarning(FString::FromInt(playerSaveGame->numRows));
+			curPlayer->myInventoryComp->addNewRows(playerSaveGame->numRows, true);
+			curPlayer->myInventoryComp->loadInventory(playerSaveGame->playerInventory);
 		}
 
 		loadKeybinds();
 		loadChests();
 		loadActors();
+
 		autoSaveTime = playerSaveGame->autoSaveTime;
-		learnedRecipes = playerSaveGame->knownRecipes;
+
+		if (playerSaveGame->knownRecipes.Num() > 0)
+		{
+			learnedRecipes = playerSaveGame->knownRecipes;
+		}
+
 		constructedBuildings = playerSaveGame->constructedBuildings;
 		brokenPieces = playerSaveGame->brokenPieces;
 		fishStats = playerSaveGame->fishStats;
 		discoveredItems = playerSaveGame->discoveredItems;
 		playerClothes = playerSaveGame->playerClothes;
 		skinColor = playerSaveGame->skinColor;
+
 
 		TArray<TEnumAsByte<ClothesCategory>> keys;
 		playerClothes.GetKeys(keys);
@@ -120,7 +135,10 @@ void UPlayerSaveManagerComponent::LoadGame(const FString& slot)
 			curPlayer->changeClothingPiece(playerClothes[category].clothesAsset, playerClothes[category].pieceColor);
 		}
 
-		curPlayer->currentTools = playerSaveGame->currentTools;
+		if (playerSaveGame->currentTools.Num() > 0)
+		{
+			curPlayer->currentTools = playerSaveGame->currentTools;
+		}
 
 		//Rebuilding buildings
 		TArray<AActor*> foundActors;
@@ -152,7 +170,7 @@ void UPlayerSaveManagerComponent::LoadGame(const FString& slot)
 
 		//Reloading quest status
 		UGameplayStatics::GetAllActorsWithTag(GetWorld(), "WorldManager", foundActors);
-		if (foundActors.Num() > 0)
+		if (foundActors.Num() > 0 && playerSaveGame->playerQuests.Num() > 0)
 		{
 			UQuestTrackerComponent* worldManagerQuestTracker = Cast<UQuestTrackerComponent>(foundActors[0]->GetComponentByClass(UQuestTrackerComponent::StaticClass()));
 			worldManagerQuestTracker->loadQuests(playerSaveGame->playerQuests);
@@ -240,7 +258,8 @@ void UPlayerSaveManagerComponent::loadChests()
 	{
 		AActor* newChest = GetWorld()->SpawnActor<AActor>(chestClass,playerSaveGame->placedChests[i].chestTransform);
 		UInventoryComponent* newChestInv = Cast<UInventoryComponent>(newChest->GetComponentByClass(UInventoryComponent::StaticClass()));
-		newChestInv->loadInventory(playerSaveGame->placedChests[i].chestInventory, playerSaveGame->placedChests[i].numRows);
+		newChestInv->addNewRows(playerSaveGame->placedChests[i].numRows, true);
+		newChestInv->loadInventory(playerSaveGame->placedChests[i].chestInventory);
 	}
 }
 
@@ -566,14 +585,13 @@ void UPlayerSaveManagerComponent::addClothingPiece(UModularClothingAsset* pieceT
 void UPlayerSaveManagerComponent::saveNPCConversationStatus(FString npcName, int curConvo)
 {
 	playerSaveGame->npcConversations.Add(npcName, curConvo);
-	UGameplayStatics::AsyncSaveGameToSlot(playerSaveGame, "Slot1", 0);
 }
 
 
 void UPlayerSaveManagerComponent::saveQuestStatus(FQuest quest)
 {
 	playerSaveGame->playerQuests.Add(quest.Quest->questName, quest);
-	UGameplayStatics::AsyncSaveGameToSlot(playerSaveGame, "Slot1", 0);
+	saveGame();
 }
 
 void UPlayerSaveManagerComponent::savePlayerQuestTags()
@@ -588,6 +606,4 @@ void UPlayerSaveManagerComponent::savePlayerQuestTags()
 			playerSaveGame->playerTags.AddTag(curTag);
 		}
 	}
-
-	UGameplayStatics::AsyncSaveGameToSlot(playerSaveGame, "Slot1", 0);
 }

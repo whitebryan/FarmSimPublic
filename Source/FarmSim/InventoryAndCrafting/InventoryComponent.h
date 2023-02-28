@@ -102,5 +102,5 @@ public:
 	int getRows();
 
 	UFUNCTION(BlueprintCallable)
-	void loadInventory(TArray<FInvItem> newInv, int rowsToAdd = 0);
+	void loadInventory(TArray<FInvItem> newInv);
 };

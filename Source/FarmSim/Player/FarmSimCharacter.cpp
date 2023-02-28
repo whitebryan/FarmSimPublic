@@ -1043,7 +1043,11 @@ void AFarmSimCharacter::changeEquippedTool_Implementation(FGameplayTag newTool)
 
 		}
 
-		toolMesh->SetStaticMesh(currentTools[newTool]->model);
+		if (currentTools.Contains(newTool))
+		{
+			toolMesh->SetStaticMesh(currentTools[newTool]->model);
+		}
+
 		reAttachTool(newSocket);
 		//Broadcast change for UI and model changes
 		PlayerToolChanged.Broadcast(newTool);
@@ -1320,7 +1324,6 @@ void AFarmSimCharacter::placePlaceable(bool place)
 			RV_TraceParams.bTraceComplex = true;
 			RV_TraceParams.AddIgnoredActor(this);
 
-
 			FVector startPoint = GetActorLocation();
 
 			FVector endPoint = GetActorLocation() + (GetActorForwardVector() * digDistance);
@@ -1378,6 +1381,7 @@ void AFarmSimCharacter::placePlaceable(bool place)
 				FVector placementPoint = RV_Hit.ImpactPoint;
 				placementPoint.Z += previewBounds.Z + 1;
 				AActor* newPlaceable = GetWorld()->SpawnActor<AActor>(itemToPlace->itemBlueprint, placementPoint, newRot, myParams);
+
 				if (!IsValid(newPlaceable))
 				{
 					displayNotification("Area blocked");

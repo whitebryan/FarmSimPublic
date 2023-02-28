@@ -109,6 +109,7 @@ TMap<URecipeAsset*, int> ACraftingTable::generateCratableAmounts(const FName typ
 	TMap<URecipeAsset*, int> results;
 	TArray<URecipeAsset*> knowRecipes = playerSaveManager->learnedRecipes;
 
+	//Change this to cache all ingredients first then calculate the amount you can craft
 	//Go through all known recipes and calculate how man the player can make based off ingredients in inv and all chests
 	for (URecipeAsset* id : knowRecipes)
 	{
@@ -124,7 +125,7 @@ TMap<URecipeAsset*, int> ACraftingTable::generateCratableAmounts(const FName typ
 			UToolItemAsset* newTool = Cast<UToolItemAsset>(id->itemToMake);
 			UToolItemAsset* playerTool = player->grabTool(newTool->toolStatus);
 
-			if (playerTool->toolTier >= newTool->toolTier)
+			if (playerTool != nullptr && playerTool->toolTier >= newTool->toolTier)
 			{
 				continue;
 			}

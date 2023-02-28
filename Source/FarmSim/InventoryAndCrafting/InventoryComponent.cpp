@@ -45,13 +45,22 @@ bool UInventoryComponent::addNewRows(int numRows, bool ignoreUpgradeItem)
 
 	for (int i = 0; i < (numRows * 5); ++i)
 	{
+		if (inventoryArray.Num() / 5 == maxInventoryRows)
+		{
+			break;
+		}
+
 		FInvItem newEmptyItem = FInvItem();
 		newEmptyItem.quantity = 0;
 		newEmptyItem.item = emptyItem;
 		inventoryArray.Add(newEmptyItem);
 	}
 
-	OnRowsAddedd.Broadcast();
+	for (int i = 0; i < numRows; ++i)
+	{
+		OnRowsAddedd.Broadcast();
+	}
+	
 	OnInvChanged.Broadcast();
 
 	return true;
@@ -497,19 +506,15 @@ int UInventoryComponent::getRows()
 	return inventoryArray.Num() / 5;
 }
 
-void UInventoryComponent::loadInventory(TArray<FInvItem> newInv, int rowsToAdd)
+void UInventoryComponent::loadInventory(TArray<FInvItem> newInv)
 {
-	if (rowsToAdd > 0)
-	{
-		addNewRows(rowsToAdd);
-	}
-
 	if (newInv.Num() > 0)
 	{
-		for (int i = 0; i < newInv.Num(); ++i)
+		for (int i = 0; i < inventoryArray.Num(); ++i)
 		{
 			inventoryArray[i] = newInv[i];
 		}
 	}
+
 	OnInvChanged.Broadcast();
 }

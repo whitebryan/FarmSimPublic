@@ -35,7 +35,7 @@ void ABaseAICharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 UConversationAsset* ABaseAICharacter::getCurConversation()
 {
-	if (npcConversations[curConversation]->questRequiredCompleted != nullptr)
+	if (curConversation < npcConversations.Num() && npcConversations[curConversation]->questRequiredCompleted != nullptr)
 	{
 		TArray<AActor*> foundActors;
 		UGameplayStatics::GetAllActorsWithTag(GetWorld(), "WorldManager", foundActors);
