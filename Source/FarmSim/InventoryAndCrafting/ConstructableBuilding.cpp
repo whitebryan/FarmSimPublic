@@ -77,7 +77,7 @@ bool AConstructableBuilding::checkIfBuildable()
 
 		AFarmSimCharacter* curPlayer = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 
-		if (keys.Contains(buildingRecipe))
+		if (keys.Contains(buildingRecipe) && craftable[buildingRecipe] > 0)
 		{
 			return true;
 		}
@@ -118,7 +118,7 @@ void AConstructableBuilding::tryBuild(bool status)
 
 		AFarmSimCharacter* curPlayer = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 
-		if (keys.Contains(buildingRecipe))//We can so remove resources, make the building, and save its staus
+		if (keys.Contains(buildingRecipe) && craftable[buildingRecipe] > 0)//We can remove resources, make the building, and save its staus
 		{
 			curCraftingTable->craftItem(buildingRecipe, 1);
 

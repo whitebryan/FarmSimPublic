@@ -34,6 +34,9 @@ protected:
 	UPROPERTY(EditAnywhere)
 	UDataTable* plantDataTable;
 
+	FTimerHandle timedRenable;
+	void timedRenableInteract();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

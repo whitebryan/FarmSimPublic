@@ -4,6 +4,7 @@
 #include "GrowthPlot.h"
 #include "../InventoryAndCrafting/InventoryItem.h"
 
+
 // Sets default values
 AGrowthPlot::AGrowthPlot()
 {
@@ -31,13 +32,13 @@ void AGrowthPlot::Tick(float DeltaTime)
 bool AGrowthPlot::plantCrop(const FName cropID)
 {
 	FInvTableItem* curPlantRow = plantDataTable->FindRow<FInvTableItem>(cropID, FString(""));
-	USeedItemAsset* plantItem = Cast<USeedItemAsset>(curPlantRow->item);
-
-	//Return if data table is faulty
 	if (curPlantRow == nullptr)
 	{
 		return false;
 	}
+
+	USeedItemAsset* plantItem = Cast<USeedItemAsset>(curPlantRow->item);
+
 
 	ABasePlant* newPlant;
 	TArray<FString> availSeasons = plantItem->availSeasons;
@@ -66,14 +67,19 @@ void AGrowthPlot::changeInteractability()
 {
 	if (myCollider->GetCollisionEnabled() == ECollisionEnabled::NoCollision)
 	{
-		myInteract->toggleInteractability();
-		myCollider->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		GetWorldTimerManager().SetTimer(timedRenable, this, &AGrowthPlot::timedRenableInteract, 0.5f, false);
 	}
 	else
 	{
 		myInteract->toggleInteractability();
 		myCollider->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+}
+
+void AGrowthPlot::timedRenableInteract()
+{
+	myInteract->toggleInteractability();
+	myCollider->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 }
 
 bool AGrowthPlot::isInUse()

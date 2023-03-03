@@ -531,7 +531,7 @@ void AFarmSimCharacter::InteractAction_Implementation()
 {
 	FGameplayTag curStatus = findTagOfType(playerStatusTag);
 
-	if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu")))
+	if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu.Crafting")))
 	{
 		if (IsValid(interactActorComp) && interactActorComp->interactionType == "Crafting" && interactActorComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
 		{
@@ -543,7 +543,7 @@ void AFarmSimCharacter::InteractAction_Implementation()
 				lastHighlighted = nullptr;
 			}
 
-			EscMenuAction();
+			toggleMenuUI(false);
 			return;
 		}
 	}
@@ -573,7 +573,7 @@ void AFarmSimCharacter::InteractAction_Implementation()
 	}
 	else if (interactActorComp != nullptr)//If we are interacting with something using an interaction component
 	{
-		if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu")) && interactActorComp->interactionType == "Loot" && interactActorComp->getStatus())
+		if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu.Chest")) && interactActorComp->interactionType == "Loot" && interactActorComp->getStatus())
 		{
 			setOtherInvComp(nullptr);
 			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal"));
@@ -582,8 +582,8 @@ void AFarmSimCharacter::InteractAction_Implementation()
 		else if (interactActorComp->interactionType == "Loot")
 		{
 			setOtherInvComp(Cast<UInventoryComponent>(interactActorComp->GetOwner()->GetComponentByClass(UInventoryComponent::StaticClass())));
-			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu"));
-			toggleMenuUI(true, "Inventory", false);
+			toggleMenuUI(true, "Chest", false);
+			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu.Chest"));
 		}
 		else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Planting")))
 		{
@@ -963,11 +963,8 @@ void AFarmSimCharacter::ScrollItemsAction_Implementation(float Value)
 			}
 		}
 
-		if (curTool == -1)
-		{
-			return;
-		}
-		else if(Value > 0)
+
+		if(Value > 0)
 		{
 			++curTool;
 		}
@@ -976,7 +973,7 @@ void AFarmSimCharacter::ScrollItemsAction_Implementation(float Value)
 			--curTool;
 		}
 
-		if (curTool <= 0)
+		if (curTool < 0)
 		{
 			curTool = 4;
 		}
@@ -1124,6 +1121,10 @@ void AFarmSimCharacter::EscMenuAction_Implementation()
 		conversationControl("End");
 		updateInteractPrompt(true);
 		toggleMenuUI(false);
+	}
+	else if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu.Chest")) || curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu.Crafting")))
+	{
+		InteractAction();
 	}
 }
 
