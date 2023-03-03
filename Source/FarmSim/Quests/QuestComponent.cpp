@@ -146,16 +146,61 @@ bool UQuestTrackerComponent::turnInQuestStep(const FString& questName)
 	}
 
 	FQuestStepStruct checkProgress = checkRemainingProgress(questName);
-	if (checkProgress.requiredTags.Num() == 0 && checkProgress.restrictedTags.Num() == 0 && checkProgress.turnInItems.Num() == 0)//checking wrong step
+	if (checkProgress.requiredTags.Num() == 0 && checkProgress.restrictedTags.Num() == 0 && checkProgress.turnInItems.Num() == 0)
 	{
 		AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+		UInventoryComponent* playerInv;
+
+		//Making sure player has room for rewards
+		if (quests[questName].Quest->questSteps[quests[questName].curStep].rewardItems.Num() > 0 || quests[questName].Quest->rewardItems.Num() > 0)
+		{
+			int neededSlots;
+			TArray<FInvItem> rewardItems = quests[questName].Quest->questSteps[quests[questName].curStep].rewardItems;
+
+			//We are about to finish the whole quest
+			if (quests[questName].curStep == quests[questName].Quest->questSteps.Num() - 1)
+			{
+				neededSlots = quests[questName].Quest->questSteps[quests[questName].curStep].rewardItems.Num() + quests[questName].Quest->rewardItems.Num();
+				rewardItems.Append(quests[questName].Quest->rewardItems);
+			}
+			else
+			{
+				neededSlots = quests[questName].Quest->questSteps[quests[questName].curStep].rewardItems.Num();
+			}
+
+			playerInv = Cast<UInventoryComponent>(player->GetComponentByClass(UInventoryComponent::StaticClass()));
+			int openSlots = playerInv->getItemQuantity("Empty");
+
+			//Not enough empty slots so check if they have anything that can stack
+			if (openSlots < neededSlots)
+			{
+
+
+				for (FInvItem curItem : rewardItems)
+				{
+					int amtFound = playerInv->getItemQuantity(curItem.item->uniqueID);
+					if (amtFound > 0 && amtFound % 99 != 0)
+					{
+						--openSlots;
+					}
+				}
+
+				if (openSlots < neededSlots)
+				{
+					FString slotNotif = "Please make sure you have " + FString::FromInt(neededSlots - openSlots) + " more open slots in your inventory.";
+
+					player->displayNotification(slotNotif, 1);
+
+					return false;
+				}
+			}
+		}
 
 		UPlayerSaveManagerComponent* playerSaveManager = Cast<UPlayerSaveManagerComponent>(player->GetComponentByClass(UPlayerSaveManagerComponent::StaticClass()));
 
 		//remove step or quest specific tags
 		stepCompleted.Broadcast(quests[questName].Quest->questSteps[quests[questName].curStep], questName);
 		++quests[questName].curStep;
-		UKismetSystemLibrary::PrintWarning("Cur step up");
 		playerSaveManager->saveQuestStatus(quests[questName]);
 
 		//Display notifications for step or quest overall rewards

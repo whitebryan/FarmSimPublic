@@ -195,9 +195,16 @@ int UInventoryComponent::getItemQuantity(const FName itemType)
 	{
 		UItemAsset* curItemAsset = inventoryArray[i].item;
 
-		if (IsValid(curItemAsset) && curItemAsset->uniqueID == itemType)
+		if (IsValid(curItemAsset))
 		{
-			curAmt += inventoryArray[i].quantity;
+			if (curItemAsset->uniqueID == "Empty" && itemType == "Empty")
+			{
+				curAmt += 1;
+			}
+			else if (curItemAsset->uniqueID == itemType)
+			{
+				curAmt += inventoryArray[i].quantity;
+			}
 		}
 	}
 	return curAmt;
