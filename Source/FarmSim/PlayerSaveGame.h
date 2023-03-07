@@ -71,6 +71,20 @@ public:
 	float curMax = -1;
 };
 
+USTRUCT(BlueprintType, Blueprintable)
+struct FHarvestableSaveStruct : public FActorSaveStruct
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FTransform> childTransforms;
+
+	UPROPERTY(BlueprintReadOnly)
+	TMap<FVector, float> childTimers;
+};
+
+
 /**
  * 
  */
@@ -96,7 +110,7 @@ public:
 	UPROPERTY()
 	TArray<FActorSaveStruct> growthPlots;
 	UPROPERTY()
-	TArray<FActorSaveStruct> harvestables;
+	TMap<FVector, FHarvestableSaveStruct> harvestables;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UDLSSMode playerDLSSMode;

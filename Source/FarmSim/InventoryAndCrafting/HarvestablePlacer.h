@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Harvestable.h"
+#include "../PlayerSaveGame.h"
 #include "HarvestablePlacer.generated.h"
 
 UCLASS()
@@ -20,6 +21,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	UPROPERTY(BlueprintReadOnly)
 	int curPlaced = 0;
 
 	FVector origin = FVector(0,0,0);
@@ -28,17 +30,24 @@ protected:
 	FTimerHandle TrySpawnHarvestableTimer;
 
 	void trySpawnHarvestable();
+	void spawnChildActor(FVector childLocation, FRotator childRot, float spawnInProg = -1);
 
 public:	
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AHarvestable> harvestableTypeToPlace;
 
 	UPROPERTY(EditAnywhere)
-	FVector posOffset = FVector(0,0,0);
+	TEnumAsByte<EPhysicalSurface> requiredPhysSurface = EPhysicalSurface::SurfaceType_Default;
+
+	UPROPERTY(EditAnywhere)
+	int rayDownLength = 300;
+
+	UPROPERTY(EditAnywhere)
+	float zOffset = 0;
 	UPROPERTY(EditAnywhere)
 	FRotator rotOffset = FRotator(0,0,0);
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int maxPlacedInZone = 10;
 
 	UPROPERTY(EditAnywhere)
@@ -48,11 +57,15 @@ public:
 	bool bShouldUseNormal = true;
 
 	UPROPERTY(EditAnywhere)
-	float maxSlope = 20;
-
-	UPROPERTY(EditAnywhere)
 	float spawnTimer = 2;
 
 	UFUNCTION()
 	void harvestableDestroyed(AActor* DestroyedActor);
+
+	UFUNCTION()
+	void reloadHarvestables(FHarvestableSaveStruct spawnedHarvestables);
+
+	UFUNCTION()
+	FHarvestableSaveStruct generateSpawnArray();
+
 };

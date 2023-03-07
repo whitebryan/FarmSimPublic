@@ -63,7 +63,7 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AActor> chestClass;
-	void saveChests();
+	bool saveChests();
 	void loadChests();
 
 
@@ -95,7 +95,7 @@ public:
 	void resetKeyBinds();
 
 	UFUNCTION(BlueprintCallable)
-	void saveActors();
+	bool saveActors();
 
 	UFUNCTION(BlueprintCallable)
 	void loadActors();
@@ -166,4 +166,10 @@ public:
 
 	UFUNCTION()
 	void savePlayerQuestTags();
+
+	UFUNCTION(BlueprintCallable)
+	bool savePlacedHarvestables();
+
+	UFUNCTION(BlueprintCallable)
+	void loadPlacedHarvestables();
 };

@@ -869,6 +869,8 @@ void AFarmSimCharacter::JumpAction_Implementation(bool isJumping)
 //Scrolling through various things
 void AFarmSimCharacter::ScrollItemsAction_Implementation(float Value)
 {
+	if(Value == 0) return;
+
 	if (findTagOfType(playerStatusTag).MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal")) && otherInteractComps.Num() > 1)//Scroll through overlapped interactable objects
 	{
 		int newIndex = otherInteractComps.Find(interactActorComp);
@@ -1178,7 +1180,6 @@ FHitResult AFarmSimCharacter::placementLineTraceDown(bool snapToGrid, bool drawD
 	FHitResult RV_Hit(ForceInit);
 	FCollisionQueryParams RV_TraceParams = FCollisionQueryParams(FName(TEXT("RV_Trace")), false, this);
 	RV_TraceParams.bTraceComplex = true;
-	RV_TraceParams.bReturnPhysicalMaterial = false;
 	RV_TraceParams.AddIgnoredActor(this);
 	RV_TraceParams.bReturnPhysicalMaterial = true;
 	

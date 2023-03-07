@@ -10,6 +10,7 @@
 #include "InventoryAndCrafting/ConstructableBuilding.h"
 #include "AI/BaseAICharacter.h"
 #include "QuestComponent.h"
+#include "InventoryAndCrafting/HarvestablePlacer.h"
 #include "Player/FarmSimCharacter.h"
 
 
@@ -69,13 +70,11 @@ void UPlayerSaveManagerComponent::saveGame(const FString& slot)
 		{
 			playerSaveGame->playerInventory = curPlayer->myInventoryComp->getInventory();
 			playerSaveGame->numRows = curPlayer->myInventoryComp->getRows() - 1;
-
-			UKismetSystemLibrary::PrintWarning("Valid player");
-			UKismetSystemLibrary::PrintWarning(FString::FromInt(playerSaveGame->numRows));
 		}
 
-		saveChests();
-		saveActors();
+		bool chestsSaved = saveChests();
+		bool actorsSaved = saveActors();
+
 		savePlayerQuestTags();
 		playerSaveGame->autoSaveTime = autoSaveTime;
 		playerSaveGame->knownRecipes = learnedRecipes;
@@ -86,6 +85,15 @@ void UPlayerSaveManagerComponent::saveGame(const FString& slot)
 		playerSaveGame->discoveredItems = discoveredItems;
 		playerSaveGame->playerClothes = playerClothes;
 		playerSaveGame->skinColor = skinColor;
+
+		bool harvestablesSaved = false;
+		harvestablesSaved = savePlacedHarvestables();
+		while (!harvestablesSaved)
+		{
+			//do nothing till all saves are done
+			UKismetSystemLibrary::PrintWarning("Saving");
+		}
+
 		UGameplayStatics::AsyncSaveGameToSlot(playerSaveGame, slot, 0, saveFinished);
 	}
 }
@@ -103,8 +111,6 @@ void UPlayerSaveManagerComponent::LoadGame(const FString& slot)
 		//Loading palyer inventory
 		if (IsValid(curPlayer))
 		{
-			UKismetSystemLibrary::PrintWarning("Valid player");
-			UKismetSystemLibrary::PrintWarning(FString::FromInt(playerSaveGame->numRows));
 			curPlayer->myInventoryComp->addNewRows(playerSaveGame->numRows, true);
 			curPlayer->myInventoryComp->loadInventory(playerSaveGame->playerInventory);
 		}
@@ -112,6 +118,11 @@ void UPlayerSaveManagerComponent::LoadGame(const FString& slot)
 		loadKeybinds();
 		loadChests();
 		loadActors();
+
+		if (playerSaveGame->harvestables.Num() > 0)
+		{
+			loadPlacedHarvestables();
+		}
 
 		autoSaveTime = playerSaveGame->autoSaveTime;
 
@@ -231,7 +242,7 @@ void UPlayerSaveManagerComponent::saveSeasonTimeWeather(const FName curWeather, 
 
 
 //Goes through all actors with BaseChest tag and saves their locations and inventories
-void UPlayerSaveManagerComponent::saveChests()
+bool UPlayerSaveManagerComponent::saveChests()
 {
 	playerSaveGame->placedChests.Empty();
 	
@@ -249,6 +260,8 @@ void UPlayerSaveManagerComponent::saveChests()
 
 		playerSaveGame->placedChests.Add(newChest);
 	}
+
+	return true;
 }
 
 //Spawns in all previously placed chests and readds their inventories
@@ -310,7 +323,7 @@ void UPlayerSaveManagerComponent::loadKeybinds()
 	}
 }
 
-void UPlayerSaveManagerComponent::saveActors()
+bool UPlayerSaveManagerComponent::saveActors()
 {
 	playerSaveGame->plantedCrops.Empty();
 	playerSaveGame->growthPlots.Empty();
@@ -346,20 +359,7 @@ void UPlayerSaveManagerComponent::saveActors()
 		playerSaveGame->growthPlots.Add(newActor);
 	}
 
-	//Find and save all harvestables
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AHarvestable::StaticClass(), actorsFound);
-	for (int i = 0; i < actorsFound.Num(); ++i)
-	{
-		FActorSaveStruct newActor;
-		newActor.actorType = nullptr;
-		newActor.actorTransform = actorsFound[i]->GetTransform();
-		newActor.actorTimer = Cast<AHarvestable>(actorsFound[i])->getCurTimeTillRespawn();
-
-		if (newActor.actorTimer > 0)
-		{
-			playerSaveGame->harvestables.Add(newActor);
-		}
-	}
+	return true;
 }
 
 void UPlayerSaveManagerComponent::loadActors()
@@ -376,22 +376,6 @@ void UPlayerSaveManagerComponent::loadActors()
 	for (int i = 0; i < playerSaveGame->growthPlots.Num(); ++i)
 	{
 		AActor* newPlot = GetWorld()->SpawnActor<AActor>(growthPlotClass, playerSaveGame->growthPlots[i].actorTransform);
-	}
-
-
-	//Reinit all harvestables that were in progress
-	TArray<AActor*> actorsFound;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AHarvestable::StaticClass(), actorsFound);
-	for (int i = 0; i < playerSaveGame->harvestables.Num(); ++i)
-	{
-		for (AActor* curAct : actorsFound)
-		{
-			if (curAct->GetActorTransform().GetLocation() == playerSaveGame->harvestables[i].actorTransform.GetLocation())
-			{
-				Cast<AHarvestable>(curAct)->initHarvestable(playerSaveGame->harvestables[i].actorTimer);
-				break;
-			}
-		}
 	}
 }
 
@@ -604,6 +588,39 @@ void UPlayerSaveManagerComponent::savePlayerQuestTags()
 		if (curTag.GetTagName().ToString().Contains("Quest"))
 		{
 			playerSaveGame->playerTags.AddTag(curTag);
+		}
+	}
+}
+
+bool UPlayerSaveManagerComponent::savePlacedHarvestables()
+{
+	playerSaveGame->harvestables.Empty();
+
+	TArray<AActor*> harvestablePlacers;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AHarvestablePlacer::StaticClass(), harvestablePlacers);
+
+	for (int i = 0; i < harvestablePlacers.Num(); ++i)
+	{
+		FHarvestableSaveStruct newActor = Cast<AHarvestablePlacer>(harvestablePlacers[i])->generateSpawnArray();
+		newActor.actorType = nullptr;
+		newActor.actorTransform = harvestablePlacers[i]->GetTransform();
+		newActor.actorTimer = 0;
+
+		playerSaveGame->harvestables.Add(harvestablePlacers[i]->GetActorLocation(), newActor);
+	}
+	return true;
+}
+
+void UPlayerSaveManagerComponent::loadPlacedHarvestables()
+{
+	TArray<AActor*> harvestablePlacers;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AHarvestablePlacer::StaticClass(), harvestablePlacers);
+
+	for (int i = 0; i < harvestablePlacers.Num(); ++i)
+	{
+		if (playerSaveGame->harvestables.Contains(harvestablePlacers[i]->GetActorLocation()))
+		{
+			Cast<AHarvestablePlacer>(harvestablePlacers[i])->reloadHarvestables(playerSaveGame->harvestables[harvestablePlacers[i]->GetActorLocation()]);
 		}
 	}
 }

@@ -28,8 +28,6 @@ protected:
 
 
 	//Item properties
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	UHarvestableItemAsset* itemToHarvest;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UBoxComponent* boxCollider;
@@ -50,6 +48,10 @@ protected:
 	void delayedMeshChange();
 
 public:	
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UHarvestableItemAsset* itemToHarvest;
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
