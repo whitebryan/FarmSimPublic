@@ -5,6 +5,8 @@
 #include "FarmSimCharacter.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/Public/SubSystems/LocalPlayerSubsystem.h"
 #include "InputMappingContext.h"
 
 

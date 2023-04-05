@@ -80,6 +80,8 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	bool bIsWalking = false;
 
+	UPROPERTY(EditAnywhere)
+	float sightAngle = 180;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UDataTable* weeklySchedule;

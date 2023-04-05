@@ -11,15 +11,24 @@ UInventoryComponent::UInventoryComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
 	inventoryArray = TArray<FInvItem>();
-	// ...
+	addNewRows(inventoryRows, true);
+
+	if (upgradeItem == nullptr)
+	{
+		FStringAssetReference itemAssetPath("/Game/Blueprints/Interactables/Harvestables/HarvestableDataAssets/Stone/SmallIronChuns.SmallIronChuns");
+		UObject* itemObject = itemAssetPath.TryLoad();
+		UItemAsset* itemAsset = Cast<UItemAsset>(itemObject);
+		if (IsValid(itemAsset))
+		{
+			upgradeItem = itemAsset;
+		}
+	}
 }
 
 // Called when the game starts
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	addNewRows(inventoryRows, true);
 }
 
 //Adds another row of empty slots to the inventory
@@ -52,7 +61,7 @@ bool UInventoryComponent::addNewRows(int numRows, bool ignoreUpgradeItem)
 
 		FInvItem newEmptyItem = FInvItem();
 		newEmptyItem.quantity = 0;
-		newEmptyItem.item = emptyItem;
+		newEmptyItem.item = nullptr;
 		inventoryArray.Add(newEmptyItem);
 	}
 
@@ -73,13 +82,19 @@ FAddItemStatus UInventoryComponent::addNewItem(const FInvItem& newItem, bool dro
 
 	int quant = getItemQuantity(itemAsset->uniqueID);
 	FAddItemStatus statusReturn;
-	if (quant == 0)
+	if (quant == 0 && newItem.quantity <= 0)
+	{
+		statusReturn.addStatus = false;
+		statusReturn.leftOvers = 0;
+		return statusReturn;
+	}
+	else if (quant == 0 || quant%99 == 0)
 	{
 		//Put it in the first empty position
 		for (int i = 0; i < inventoryArray.Num(); ++i)
 		{
 			UItemAsset* curItem = inventoryArray[i].item;
-			if (curItem->uniqueID == FName("Empty"))
+			if (curItem == nullptr)
 			{
 				inventoryArray[i] = newItem;
 				OnInvChanged.Broadcast();
@@ -182,7 +197,7 @@ void UInventoryComponent::removeItem(int slot)
 
 	FInvItem newEmptyItem = FInvItem();
 	newEmptyItem.quantity = 0;
-	newEmptyItem.item = emptyItem;
+	newEmptyItem.item = nullptr;
 
 	inventoryArray[slot] = newEmptyItem;
 	OnInvChanged.Broadcast();
@@ -197,7 +212,7 @@ int UInventoryComponent::getItemQuantity(const FName itemType)
 
 		if (IsValid(curItemAsset))
 		{
-			if (curItemAsset->uniqueID == "Empty" && itemType == "Empty")
+			if (itemType == "Empty" && curItemAsset == nullptr)
 			{
 				curAmt += 1;
 			}
@@ -300,7 +315,7 @@ int UInventoryComponent::changeQuantity(const FName itemID, int quantityToChange
 	{
 		UItemAsset* curItem = inventoryArray[i].item;
 
-		if (curItem->uniqueID == itemID)
+		if (IsValid(curItem) && curItem->uniqueID == itemID)
 		{
 			int curAmt = inventoryArray[i].quantity;
 
@@ -349,11 +364,11 @@ int UInventoryComponent::changeQuantity(const FName itemID, int quantityToChange
 		{
 			UItemAsset* curItem = inventoryArray[i].item;
 
-			if (curItem->uniqueID == FName("Empty") && emptySlot == -1)
+			if (curItem == nullptr && emptySlot == -1)
 			{
 				emptySlot = i;
 			}
-			else if (curItem->uniqueID == itemID)
+			else if (IsValid(curItem) && curItem->uniqueID == itemID)
 			{
 				tempCopy = inventoryArray[i];
 			}
@@ -365,7 +380,7 @@ int UInventoryComponent::changeQuantity(const FName itemID, int quantityToChange
 		{
 			return amountLeftToChange;
 		}
-		else if (tempItem->uniqueID == FName("Empty"))
+		else if (tempItem == nullptr)
 		{
 			return amountLeftToChange;
 		}
@@ -392,7 +407,7 @@ bool UInventoryComponent::splitStack(int slot, int newStackSize)
 	{
 		UItemAsset* curItem = inventoryArray[i].item;
 
-		if (curItem->uniqueID == "Empty")
+		if (curItem == nullptr)
 		{
 			inventoryArray[i] = inventoryArray[slot];
 			inventoryArray[i].quantity = newStackSize;
@@ -501,7 +516,7 @@ bool UInventoryComponent::isEmpty()
 	{
 		UItemAsset* curItem = inventoryArray[i].item;
 
-		if(curItem->uniqueID != "Empty")
+		if(curItem != nullptr)
 			return false;
 	}
 

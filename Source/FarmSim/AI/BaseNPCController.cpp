@@ -54,8 +54,16 @@ void ABaseNPCController::Tick(float DeltaTime)
 	//Checking if the player is infront of the pawn to trigger head tracking
 	if (bShouldCheckForHeadTracking)
 	{
-		float heading = UKismetMathLibrary::GetDirectionUnitVector(myCharacter->GetActorLocation(), playerCharacter->GetActorLocation()).Dot(myCharacter->GetActorForwardVector());
-		if (heading >= 0.7)
+		
+		FVector headingVec = UKismetMathLibrary::GetDirectionUnitVector(myCharacter->GetActorLocation(), playerCharacter->GetActorLocation());
+		headingVec.Normalize();
+		float heading = headingVec.Dot(myCharacter->GetActorForwardVector());
+
+		float headingToDegrees = UKismetMathLibrary::RadiansToDegrees(UKismetMathLibrary::Acos(heading));
+
+		//Check if the player is in the correct angle
+		//Divide by two to make it easier in editor to say they have 180 degrees vision infront of them for example
+		if (headingToDegrees <= (myCharacter->sightAngle / 2))
 		{
 			objectToTrack = playerCharacter;
 			myCharacter->bShouldHeadTrack = true;

@@ -9,7 +9,8 @@ public class FarmSim : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "PhysicsCore", "HeadMountedDisplay", "EnhancedInput", "SimpleInteract", "DLSS", "DLSSBlueprint", "GameplayTags" });
-		PublicIncludePaths.AddRange(new string[] {"../../FarmSim/Plugins/SimpleInteract/Source/SimpleInteract/Public"});
+        PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd" });
+        PublicIncludePaths.AddRange(new string[] {"../../FarmSim/Plugins/SimpleInteract/Source/SimpleInteract/Public"});
 		PublicIncludePaths.AddRange(new string[] {"../../FarmSim/Plugins/DLSS/Source" });
 		PublicIncludePaths.AddRange(new string[] {"../../FarmSim/Plugins/ColorWheelPlugin" });
 		PublicIncludePaths.AddRange(new string[] {"./FarmSim/Quests"});

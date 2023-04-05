@@ -7,6 +7,7 @@
 #include "Components/BoxComponent.h"
 #include "InventoryItem.h"
 #include "InteractComponent.h"
+#include "Materials/MaterialInstanceDynamic.h" 
 #include "ConstructableBuilding.generated.h"
 
 UCLASS()

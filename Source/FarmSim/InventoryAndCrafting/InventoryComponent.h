@@ -30,16 +30,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "1", ClampMax = "5", UMin = "1", UMax = "5", ToolTip = "The Max number of rows that can be added to this inventory."))
 	int maxInventoryRows = 5;
 
-	UPROPERTY(EditAnywhere)
-	UItemAsset* emptyItem;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "0", ClampMax = "2000", UMin = "0", UMax = "2000", ToolTip = "The range to add to a lootbag instead of creating a new one."))
 	float mergeDist = 500;
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AActor> lootBag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip ="The item needed to upgrade this inventory(must be in this specific inventory to use)"))
-	UItemAsset* upgradeItem;
+	UItemAsset* upgradeItem = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Tooltip = "Amount of the upgrade item needed"))
 	int amtToUpgrade = 1;
 

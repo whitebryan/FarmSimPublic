@@ -1195,7 +1195,7 @@ FHitResult AFarmSimCharacter::placementLineTraceDown(bool snapToGrid, bool drawD
 		RV_TraceParams.TraceTag = TraceTag;
 	}
 
-	FVector startPoint = GetActorLocation() + (GetActorForwardVector() * digDistance * distanceMod);
+	FVector startPoint = GetActorLocation() + (FollowCamera->GetForwardVector() * digDistance * distanceMod);
 
 	if (snapToGrid)
 	{
@@ -1205,7 +1205,6 @@ FHitResult AFarmSimCharacter::placementLineTraceDown(bool snapToGrid, bool drawD
 
 	FVector endPoint = startPoint;
 	endPoint.Z -= distanceDown;
-
 
 	bool hit = GetWorld()->LineTraceSingleByChannel(
 		RV_Hit,

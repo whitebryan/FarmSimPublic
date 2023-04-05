@@ -286,6 +286,5 @@ protected:
 	void reAttachTool(FName socket);
 	UFUNCTION(BlueprintImplementableEvent)
 	void setOtherInvComp(UInventoryComponent* otherInv);
-
 };
 
