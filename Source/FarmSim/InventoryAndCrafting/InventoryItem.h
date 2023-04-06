@@ -245,6 +245,7 @@ public:
 
 	FInvItem()
 	{
+		item = nullptr;
 		quantity = 0;
 	}
 
