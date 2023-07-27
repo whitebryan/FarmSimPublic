@@ -1,4 +1,4 @@
-#if !UE_BUILD_SHIPPING
+#if UE_EDITOR
 
 #include "CoreMinimal.h"
 #include "Misc/AutomationTest.h"

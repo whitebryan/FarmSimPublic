@@ -29,6 +29,8 @@ protected:
 	int inventoryRows = 1;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "1", ClampMax = "5", UMin = "1", UMax = "5", ToolTip = "The Max number of rows that can be added to this inventory."))
 	int maxInventoryRows = 5;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "1", UMin = "1", ToolTip = "The number of slots per row."))
+	int slotsPerRow = 5;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "0", ClampMax = "2000", UMin = "0", UMax = "2000", ToolTip = "The range to add to a lootbag instead of creating a new one."))
 	float mergeDist = 500;
@@ -50,54 +52,54 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	TArray<FInvItem> inventoryArray;
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta=(ToolTip = "Try to add new rows up the max set"))
 	bool addNewRows(int numRows = 1, bool ignoreUpgradeItem = false);
 
 	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Adds as much from the stack of new item to the inventory as possible and drops the rest"))
 	FAddItemStatus addNewItem(const FInvItem& newItem, bool dropIfNoneAdded = false, bool dropIfPartialAdded = true);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (Tooltip ="Try to add an item at a specific spot, DOES NOT CHECK IF SLOT IS EMPTY FIRST"))
 	void addItemAtSlot(const FInvItem& newItem, int slot);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Move item from one slot to another"))
 	void moveItem(int from, int to);
 		
-	UFUNCTION(BlueprintCallable)
-	void removeItem(int slot);
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Remove Item from inventory"))
+	void removeItem(int slot, bool bShouldDrop = true);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Move from one inventory comp to another"))
 	bool moveToNewInvComp(int slot, UInventoryComponent* newComp);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Get the amount of an item in this inventory"))
 	int getItemQuantity(const FName itemID);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Find the item in a specific spot"))
 	FInvItem getItemAtSlot(int slot);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Check if an item of a specific type exists in the inventory"))
 	bool itemTypeExists(const FName typeToSearchFor);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Find the next item of a specific type starting from startPos ind"))
 	int findNextItemOfType(int startPos, int direction, const FName itemType);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	int changeQuantity(const FName itemID, int quantityToChange);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Split a stack into multiple slots"))
 	bool splitStack(int slot, int newStackSize);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Drop item on the ground and put it in a loot bag"))
 	void createLootBag(const FInvItem& itemToDrop, int slot = -1);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Check if the inventory has any items"))
 	bool isEmpty();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Get a copy of the inventory"))
 	const TArray<FInvItem> getInventory() { return inventoryArray; };
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Get current amount of rows"))
 	int getRows();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (ToolTip = "Load inventory from array"))
 	void loadInventory(TArray<FInvItem> newInv);
 };

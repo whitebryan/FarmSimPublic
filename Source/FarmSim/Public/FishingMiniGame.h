@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Engine/DataTable.h"
-#include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractInterface.h"
+#include "InteractInterface.h"
 #include "InventoryAndCrafting/InventoryItem.h"
 #include "Components/DecalComponent.h" 
 #include "Materials/MaterialInstanceDynamic.h"

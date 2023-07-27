@@ -199,6 +199,7 @@ TMap<URecipeAsset*, int> ACraftingTable::generateCratableAmounts(const FName typ
 		{
 			results.Add(id, maxCrafts);
 		}
+
 	}
 	return results;
 }
@@ -214,13 +215,13 @@ void ACraftingTable::Interact(bool status)
 	else//Else clear them to save memory
 	{
 		toggleUI(false);
-		inventories.Empty();
 	}
 }
 
 
 void ACraftingTable::grabChests()
 {
+	inventories.Empty();
 	TArray<AActor*> chests;
 
 	UGameplayStatics::GetAllActorsWithTag(GetWorld(), "Storage", chests);

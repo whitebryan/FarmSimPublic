@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "FarmSimCharacter.h"
-#include "SimpleInteract/Public/InteractInterface.h"
+#include "InteractInterface.h"
 #include "Camera/CameraComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "../Farming/GrowthPlot.h"
@@ -87,6 +87,11 @@ void AFarmSimCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AAct
 		otherInteractComps.Add(interactActorComp);
 		objectToTrack = OtherActor;
 		updateInteractPrompt();
+
+		if (IsValid(interactActorComp) && interactActorComp->interactionType == "Loot")
+		{
+			setOtherInvComp(Cast<UInventoryComponent>(interactActorComp->GetOwner()->GetComponentByClass(UInventoryComponent::StaticClass())));
+		}
 
 		//Enable new highlight
 		if (OtherActor->GetClass()->ImplementsInterface(UItemHighlightInterface::StaticClass()))
@@ -486,9 +491,9 @@ void AFarmSimCharacter::InteractAction_Implementation()
 
 	if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu.Crafting")))
 	{
-		if (IsValid(interactActorComp) && interactActorComp->interactionType == "Crafting" && interactActorComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+		if (IsValid(interactActorComp) && interactActorComp->interactionType == "Crafting")
 		{
-			IInteractInterface::Execute_Interact(interactActorComp);
+			interactActorComp->Interact();
 
 			if (IsValid(lastHighlighted) && lastHighlighted->GetClass()->ImplementsInterface(UItemHighlightInterface::StaticClass()))
 			{
@@ -528,13 +533,11 @@ void AFarmSimCharacter::InteractAction_Implementation()
 	{
 		if (curStatus.MatchesTagExact(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu.Chest")) && interactActorComp->interactionType == "Loot" && interactActorComp->getStatus())
 		{
-			setOtherInvComp(nullptr);
 			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Normal"));
 			toggleMenuUI(false, "Inventory", false);
 		}
 		else if (interactActorComp->interactionType == "Loot")
 		{
-			setOtherInvComp(Cast<UInventoryComponent>(interactActorComp->GetOwner()->GetComponentByClass(UInventoryComponent::StaticClass())));
 			toggleMenuUI(true, "Chest", false);
 			setPlayerStatus(FGameplayTag::RequestGameplayTag("PlayerStatus.Menu.Chest"));
 		}
@@ -590,11 +593,7 @@ void AFarmSimCharacter::InteractAction_Implementation()
 			}
 			return;
 		}
-
-		if (interactActorComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
-		{
-			IInteractInterface::Execute_Interact(interactActorComp);
-		}
+		interactActorComp->Interact();
 	}
 	else//If no component use tool
 	{
@@ -715,10 +714,7 @@ void AFarmSimCharacter::UseToolAction_Implementation()
 	{
 		if (IsValid(interactActorComp))
 		{
-			if (interactActorComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
-			{
-				IInteractInterface::Execute_Interact(interactActorComp);
-			}
+			interactActorComp->Interact();
 		}
 	}
 	else if (toolTypeString == "Fishing Rod")

@@ -203,11 +203,7 @@ bool ABaseNPCController::tryInteract()
 			myBlackboard->SetValueAsBool("bIsInteracting", true);
 
 			myCharacter->curInteractionType = FName(*curActorComp->interactionType);
-
-			if (curActorComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
-			{
-				IInteractInterface::Execute_moveActorIntoPlace(curActorComp, myCharacter);
-			}
+			curActorComp->moveActorIntoPlace(myCharacter);
 
 			return true;
 		}

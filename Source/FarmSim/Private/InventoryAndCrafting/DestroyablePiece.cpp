@@ -42,16 +42,13 @@ void ADestroyablePiece::Tick(float DeltaTime)
 void ADestroyablePiece::tryHarvest()
 {
 	AFarmSimCharacter* player = Cast<AFarmSimCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
-
 	if (player->findTagOfType(player->toolStatusTag).MatchesTagExact(toolRequired))
 	{
 		UToolItemAsset* playerTool = player->grabTool(toolRequired);
-		if (playerTool->toolTier >= toolTierRequired)
+		if (playerTool->type == toolType && playerTool->toolTier >= toolTierRequired)
 		{
-			if (myInteractComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
-			{
-				myInteractComp->Execute_moveActorIntoPlace(myInteractComp, Cast<AActor>(player));
-			}
+			//Change to work with NPCs as well
+			myInteractComp->moveActorIntoPlace(Cast<AActor>(player));
 
 			player->toolUsed = true;
 			Cast<UPlayerSaveManagerComponent>(player->GetComponentByClass(UPlayerSaveManagerComponent::StaticClass()))->saveBrokenPiece(GetActorLocation());
@@ -68,7 +65,7 @@ void ADestroyablePiece::tryHarvest()
 	}
 	else
 	{
-		FString returnMessage = "his requires a " + toolType + " to destroy";
+		FString returnMessage = "his requires a " + toolType.ToString() + " to destroy";
 		player->displayNotification(returnMessage, 2);
 	}
 }

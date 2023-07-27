@@ -6,7 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Engine/DataTable.h"
 #include "ConversationManager.h"
-#include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractInterface.h"
+#include "InteractInterface.h"
 #include "BaseAICharacter.generated.h"
 
 

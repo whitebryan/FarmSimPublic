@@ -28,7 +28,7 @@ void UTrainSplineComponent::moveAndRotateTrainPiece(UStaticMeshComponent* piecet
 void UTrainSplineComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	//Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (!isDelayed)
+	if (!bIsDelayed)
 	{
 		//Check if we are currently nearly at a spline point
 		bool atPoint = objectToMove->GetRelativeLocation().Equals(splineToFollow->GetLocationAtSplinePoint(nextPoint, ESplineCoordinateSpace::Local), 30);
@@ -38,7 +38,7 @@ void UTrainSplineComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 			TArray<int> keys;
 			pointsToStopAt.GetKeys(keys);
 
-			bool shouldStop = shouldEverStop && keys.Contains(nextPoint);
+			bool shouldStop = bShouldEverStop && keys.Contains(nextPoint);
 
 			if (splineToFollow->IsClosedLoop() && nextPoint >= numPoints)//Reset to 0 after a loop in a closed loop
 			{
@@ -51,24 +51,11 @@ void UTrainSplineComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 
 			if (shouldStop)//Pause if the spline is meant to stop
 			{
-				isDelayed = true;
+				bIsDelayed = true;
 				GetWorld()->GetTimerManager().SetTimer(endDelayer, this, &UFollowSplineComponent::toggleDelay, stopDelay, false);
 				return;
 			}
 		}
-
-		/*
-		//Interp towards next point
-		FVector newLoc = UKismetMathLibrary::VInterpTo_Constant(objectToMove->GetRelativeLocation(), splineToFollow->GetLocationAtSplinePoint(nextPoint, ESplineCoordinateSpace::Local), GetWorld()->GetDeltaSeconds(), curSpeed);
-
-		FVector pos;
-		float curDist = splineToFollow->FindInputKeyClosestToWorldLocation(objectToMove->GetComponentLocation());
-		curDist = splineToFollow->GetDistanceAlongSplineAtSplineInputKey(curDist);
-		FRotator newRot = splineToFollow->GetRotationAtDistanceAlongSpline(curDist, ESplineCoordinateSpace::World);
-
-		objectToMove->SetWorldRotation(newRot);
-		objectToMove->SetRelativeLocation(newLoc);
-		*/
 
 		TArray<int> keys;
 		otherPieces.GetKeys(keys);

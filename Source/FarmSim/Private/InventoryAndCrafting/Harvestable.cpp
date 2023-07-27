@@ -61,9 +61,9 @@ void AHarvestable::tryHarvest() //Check if the players tool is able to harvest t
 		{
 			if (!itemToHarvest->requiresTool || playerTool->toolTier >= itemToHarvest->toolLevel)
 			{
-				if (bShouldMoveInteractee && myInteractComp->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+				if (bShouldMoveInteractee)
 				{
-					myInteractComp->Execute_moveActorIntoPlace(myInteractComp, Cast<AActor>(player));
+					myInteractComp->moveActorIntoPlace(Cast<AActor>(player));
 				}
 
 				if (itemToHarvest->requiresTool)

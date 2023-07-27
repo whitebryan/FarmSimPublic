@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "AIController.h"
 #include "Engine/DataTable.h"
-#include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractComponent.h"
+#include "InteractComponent.h"
 #include "BaseAICharacter.h"
 #include "Components/SphereComponent.h"
 #include "BehaviorTree/BlackboardComponent.h" 

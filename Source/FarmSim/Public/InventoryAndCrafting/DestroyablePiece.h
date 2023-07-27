@@ -30,7 +30,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly);
 	FGameplayTag toolRequired = FGameplayTag::EmptyTag;
 
-	FString toolType = "Pickaxe";
+	FName toolType = "Pickaxe";
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TEnumAsByte<ToolTier> toolTierRequired = ToolTier::Starter;

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractComponent.h"
+#include "InteractComponent.h"
 #include "GameFramework/Character.h"
 #include "ToolItem.h"
 #include "InventoryComponent.h"

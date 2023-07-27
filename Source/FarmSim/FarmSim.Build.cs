@@ -17,10 +17,9 @@ public class FarmSim : ModuleRules
 
         PublicIncludePaths.AddRange(new string[] 
 		{
-			"../../FarmSim/Plugins/SimpleInteract/Source/SimpleInteract/",
-			"../../FarmSim/Plugins/DLSS/Source",
-			"../../FarmSim/Plugins/ColorWheelPlugin",
-            "../../FarmSim/Plugins/BaseRebindableController/Source/BaseController/Public",
+			"../Plugins/SimpleInteract/Source/SimpleInteract/Public",
+			"../Plugins/DLSS/Source",
+            "../Plugins/BaseRebindableController/Source/BaseController/Public",
             "../Source/FarmSim/Public",
             "../Source/FarmSim/Public/AI",
             "../Source/FarmSim/Public/Environment",
@@ -32,7 +31,8 @@ public class FarmSim : ModuleRules
 
 		PrivateIncludePaths.AddRange(new string[] 
         {
-            "../../FarmSim/Plugins/BaseRebindableController/Source/BaseController/Private",
+			"../Plugins/SimpleInteract/Source/SimpleInteract/Private",
+			"../Plugins/BaseRebindableController/Source/BaseController/Private",
             "../Source/FarmSim/Private/",
             "../Source/FarmSim/Private/AI",
             "../Source/FarmSim/Private/Environment",

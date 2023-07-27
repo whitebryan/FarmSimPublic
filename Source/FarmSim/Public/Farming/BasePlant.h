@@ -7,7 +7,6 @@
 #include "GameFramework/Actor.h"
 #include "InventoryItem.h"
 #include "Math/Color.h"
-#include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractInterface.h"
 #include "BasePlant.generated.h"
 
 UENUM(Blueprintable, BlueprintType)

@@ -11,7 +11,6 @@ UInventoryComponent::UInventoryComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
 	inventoryArray = TArray<FInvItem>();
-	addNewRows(inventoryRows, true);
 
 	if (upgradeItem == nullptr)
 	{
@@ -29,12 +28,13 @@ UInventoryComponent::UInventoryComponent()
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	addNewRows(inventoryRows, true);
 }
 
 //Adds another row of empty slots to the inventory
 bool UInventoryComponent::addNewRows(int numRows, bool ignoreUpgradeItem)
 {
-	if (inventoryArray.Num() / 5 == maxInventoryRows)
+	if (inventoryArray.Num() / slotsPerRow == maxInventoryRows)
 	{
 		return false;
 	}
@@ -52,9 +52,9 @@ bool UInventoryComponent::addNewRows(int numRows, bool ignoreUpgradeItem)
 		}
 	}
 
-	for (int i = 0; i < (numRows * 5); ++i)
+	for (int i = 0; i < (numRows * slotsPerRow); ++i)
 	{
-		if (inventoryArray.Num() / 5 == maxInventoryRows)
+		if (inventoryArray.Num() / slotsPerRow == maxInventoryRows)
 		{
 			break;
 		}
@@ -79,9 +79,16 @@ bool UInventoryComponent::addNewRows(int numRows, bool ignoreUpgradeItem)
 FAddItemStatus UInventoryComponent::addNewItem(const FInvItem& newItem, bool dropIfFull, bool dropIfPartialAdded)
 {
 	UItemAsset* itemAsset = newItem.item;
+	FAddItemStatus statusReturn;
+
+	if (!IsValid(itemAsset))
+	{
+		statusReturn.addStatus = false;
+		statusReturn.leftOvers = 0;
+		return statusReturn;
+	}
 
 	int quant = getItemQuantity(itemAsset->uniqueID);
-	FAddItemStatus statusReturn;
 	if (quant == 0 && newItem.quantity <= 0)
 	{
 		statusReturn.addStatus = false;
@@ -164,7 +171,12 @@ void UInventoryComponent::moveItem(int from, int to)
 	UItemAsset* toItemAsset = inventoryArray[from].item;
 
 	//If items are the same item combine stacks if possible
-	if (prevItemAsset->uniqueID == toItemAsset->uniqueID)
+	if (prevItemAsset == nullptr)
+	{
+		inventoryArray[to] = inventoryArray[from];
+		inventoryArray[from] = prevItem;
+	}
+	else if (IsValid(prevItemAsset) && prevItemAsset->uniqueID == toItemAsset->uniqueID)
 	{
 		//If combined they are a full stack or less combine into one stack, otherwise move a quantity
 		if (prevItem.quantity + inventoryArray[from].quantity <= 99)
@@ -188,7 +200,7 @@ void UInventoryComponent::moveItem(int from, int to)
 	OnInvChanged.Broadcast();
 }
 
-void UInventoryComponent::removeItem(int slot)
+void UInventoryComponent::removeItem(int slot, bool bShouldDrop)
 {
 	if (slot < 0 || slot >= inventoryArray.Num())
 	{
@@ -198,6 +210,11 @@ void UInventoryComponent::removeItem(int slot)
 	FInvItem newEmptyItem = FInvItem();
 	newEmptyItem.quantity = 0;
 	newEmptyItem.item = nullptr;
+
+	if (bShouldDrop)
+	{
+		createLootBag(inventoryArray[slot]);
+	}
 
 	inventoryArray[slot] = newEmptyItem;
 	OnInvChanged.Broadcast();
@@ -227,7 +244,7 @@ int UInventoryComponent::getItemQuantity(const FName itemType)
 
 FInvItem UInventoryComponent::getItemAtSlot(int slot)
 {
-	if(slot > inventoryArray.Num() || slot < 0)
+	if(slot >= inventoryArray.Num() || slot < 0)
 		return FInvItem();
 	else
 		return inventoryArray[slot];
@@ -449,6 +466,9 @@ bool UInventoryComponent::moveToNewInvComp(int slot, UInventoryComponent* newCom
 //Function to allow the user to drop items on the ground or for say plants to request a loot bag dropped if the new amount would overflow
 void UInventoryComponent::createLootBag(const FInvItem& itemToDrop, int slot)
 {
+	if(!IsValid(lootBag))
+		return;
+
 	//grab all lootbag actors
 	//run through and remove all out of range
 	//Try to add the item, without the ability to drop
@@ -525,7 +545,7 @@ bool UInventoryComponent::isEmpty()
 
 int UInventoryComponent::getRows()
 {
-	return inventoryArray.Num() / 5;
+	return inventoryArray.Num() / slotsPerRow;
 }
 
 void UInventoryComponent::loadInventory(TArray<FInvItem> newInv)

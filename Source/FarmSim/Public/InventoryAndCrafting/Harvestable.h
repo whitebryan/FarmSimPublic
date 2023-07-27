@@ -6,7 +6,6 @@
 #include "GameFramework/Actor.h"
 #include "../ToolItem.h"
 #include "InventoryItem.h"
-#include "../../Plugins/SimpleInteract/Source/SimpleInteract/Public/InteractInterface.h"
 #include "Components/BoxComponent.h"
 #include "InteractComponent.h"
 #include "Harvestable.generated.h"
